@@ -1,0 +1,70 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ============================================
+    // TEMPORARY OPEN RULES FOR TESTING
+    // ⚠️ DEPLOY THESE TO DEBUG, THEN REPLACE WITH SECURE RULES
+    // ============================================
+    
+    // USERS COLLECTION - TEMPORARILY OPEN
+    match /users/{userId} {
+      allow read, write: if true;  // OPEN FOR TESTING
+    }
+    
+    // CARETAKER PROFILES COLLECTION - PUBLIC
+    match /caretaker_profiles/{profileId} {
+      allow read, write: if true;  // Already public
+    }
+    
+    // BOOKINGS COLLECTION - PUBLIC
+    match /bookings/{bookingId} {
+      allow read, write: if true;  // Already public
+    }
+    
+    // REVIEWS COLLECTION - PUBLIC
+    match /reviews/{reviewId} {
+      allow read, write: if true;  // Already public
+    }
+    
+    // NOTIFICATIONS COLLECTION - TEMPORARILY OPEN
+    match /notifications/{notificationId} {
+      allow read, write: if true;  // OPEN FOR TESTING
+    }
+    
+    // VERIFICATIONS COLLECTION - TEMPORARILY OPEN
+    match /verifications/{verificationId} {
+      allow read, write: if true;  // OPEN FOR TESTING
+    }
+    
+    // CHATS COLLECTION - TEMPORARILY OPEN
+    match /chats/{chatId} {
+      allow read, write: if true;  // OPEN FOR TESTING
+      
+      match /messages/{messageId} {
+        allow read, write: if true;  // OPEN FOR TESTING
+      }
+    }
+    
+    // CARE PLANS COLLECTION - TEMPORARILY OPEN
+    match /care_plans/{planId} {
+      allow read, write: if true;  // OPEN FOR TESTING
+    }
+    
+    // PAYMENTS COLLECTION - TEMPORARILY OPEN
+    match /payments/{paymentId} {
+      allow read, write: if true;  // OPEN FOR TESTING
+    }
+    
+    // AVAILABILITY COLLECTION - PUBLIC
+    match /availability/{availabilityId} {
+      allow read, write: if true;  // Already public
+    }
+    
+    // AUDIT LOGS COLLECTION - TEMPORARILY OPEN
+    match /audit_logs/{logId} {
+      allow read, write: if true;  // OPEN FOR TESTING
+    }
+  }
+}

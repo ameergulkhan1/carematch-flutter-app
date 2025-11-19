@@ -1,0 +1,48 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+import 'app.dart';
+import 'package:provider/provider.dart';
+import 'providers/auth_provider.dart' as app_auth;
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  try {
+    if (kIsWeb) {
+      await Firebase.initializeApp(
+        options: const FirebaseOptions(
+            apiKey: "AIzaSyDJzMTzfNnAOvKsHyDfCkTWfYiK1u4TJUM",
+            authDomain: "flowing-bazaar-468814-g0.firebaseapp.com",
+            projectId: "flowing-bazaar-468814-g0",
+            storageBucket: "flowing-bazaar-468814-g0.firebasestorage.app",
+            messagingSenderId: "409779602382",
+            appId: "1:409779602382:web:39f13144f66136b3e0a19f"),
+      );
+    } else {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    }
+    debugPrint('✅ Firebase initialized successfully');
+  } catch (e) {
+    debugPrint('❌ Failed to initialize Firebase: $e');
+  }
+
+  // Run the app with providers
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider<app_auth.AuthProvider>(
+            create: (_) => app_auth.AuthProvider()),
+      ],
+      child: const MyApp(),
+    ),
+  );
+}

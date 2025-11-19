@@ -1,0 +1,254 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ========================================
+    // HELPER FUNCTIONS
+    // ========================================
+    
+    // Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Check if user is admin
+    function isAdmin() {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // Check if user is caretaker
+    function isCaretaker() {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'caretaker';
+    }
+    
+    // Check if user owns the resource
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Check if user is admin or owner
+    function isAdminOrOwner(userId) {
+      return isAdmin() || isOwner(userId);
+    }
+    
+    // ========================================
+    // USERS COLLECTION
+    // ========================================
+    match /users/{userId} {
+      // Admin: Full access
+      // Caretaker: Read own, Update own
+      // Public: No access
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAdminOrOwner(userId);
+      allow delete: if isAdmin();
+    }
+    
+    // ========================================
+    // CARETAKER PROFILES COLLECTION
+    // ========================================
+    match /caretaker_profiles/{profileId} {
+      // Public: Read access for search/browse
+      // Caretaker: Create/Update own profile
+      // Admin: Full access
+      allow read: if true; // ✅ Public read for search
+      allow create: if isAuthenticated();
+      allow update: if isAdminOrOwner(profileId);
+      allow delete: if isAdmin();
+    }
+    
+    // ========================================
+    // BOOKINGS COLLECTION
+    // ========================================
+    match /bookings/{bookingId} {
+      // Public users: Create bookings (no login required)
+      // Caretaker: Read/Update bookings assigned to them
+      // Admin: Full access
+      allow read: if isAdmin() || 
+                     (isCaretaker() && resource.data.caretakerId == request.auth.uid) ||
+                     (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow create: if true; // ✅ Anyone can create booking (guest booking)
+      allow update: if isAdmin() || 
+                       (isCaretaker() && resource.data.caretakerId == request.auth.uid) ||
+                       (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow delete: if isAdmin();
+    }
+    
+    // ========================================
+    // REVIEWS COLLECTION
+    // ========================================
+    match /reviews/{reviewId} {
+      // Public: Read all reviews
+      // Users: Create reviews for bookings
+      // Caretaker: Read reviews about them
+      // Admin: Full access
+      allow read: if true; // ✅ Public read
+      allow create: if true; // ✅ Anyone can leave review
+      allow update: if isAdminOrOwner(resource.data.userId);
+      allow delete: if isAdmin();
+    }
+    
+    // ========================================
+    // NOTIFICATIONS COLLECTION
+    // ========================================
+    match /notifications/{notificationId} {
+      // Users: Read/Update their own notifications
+      // Admin: Full access
+      allow read: if isAdminOrOwner(resource.data.userId);
+      allow create: if isAuthenticated();
+      allow update: if isAdminOrOwner(resource.data.userId);
+      allow delete: if isAdminOrOwner(resource.data.userId) || isAdmin();
+    }
+    
+    // ========================================
+    // VERIFICATIONS COLLECTION
+    // ========================================
+    match /verifications/{verificationId} {
+      // Caretaker: Create/Read own verification
+      // Admin: Full access
+      allow read: if isAdmin() || isOwner(resource.data.caretakerId);
+      allow create: if isCaretaker();
+      allow update: if isAdmin(); // Only admin can approve/reject
+      allow delete: if isAdmin();
+    }
+    
+    // ========================================
+    // AUDIT LOGS COLLECTION
+    // ========================================
+    match /audit_logs/{logId} {
+      // Admin: Read all logs
+      // System: Create logs
+      allow read: if isAdmin();
+      allow create: if isAuthenticated();
+      allow update: if false; // Logs are immutable
+      allow delete: if isAdmin();
+    }
+    
+    // ========================================
+    // CHATS/MESSAGES COLLECTION
+    // ========================================
+    match /chats/{chatId} {
+      // Participants: Read/Write their own chats
+      // Admin: Full access
+      allow read: if isAdmin() || 
+                     (isAuthenticated() && request.auth.uid in resource.data.participants);
+      allow create: if isAuthenticated();
+      allow update: if isAdmin() || 
+                       (isAuthenticated() && request.auth.uid in resource.data.participants);
+      allow delete: if isAdmin();
+      
+      // Messages subcollection
+      match /messages/{messageId} {
+        allow read: if isAdmin() || 
+                       (isAuthenticated() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants);
+        allow create: if isAuthenticated() && 
+                         request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+        allow update: if isAdmin();
+        allow delete: if isAdmin();
+      }
+    }
+    
+    // ========================================
+    // CARE PLANS COLLECTION
+    // ========================================
+    match /care_plans/{planId} {
+      // Caretaker: Create/Read/Update own care plans
+      // Admin: Full access
+      allow read: if isAdmin() || 
+                     (isCaretaker() && resource.data.caretakerId == request.auth.uid);
+      allow create: if isCaretaker();
+      allow update: if isAdmin() || 
+                       (isCaretaker() && resource.data.caretakerId == request.auth.uid);
+      allow delete: if isAdmin();
+    }
+    
+    // ========================================
+    // EARNINGS COLLECTION
+    // ========================================
+    match /earnings/{earningId} {
+      // Caretaker: Read own earnings
+      // Admin: Full access
+      allow read: if isAdmin() || 
+                     (isCaretaker() && resource.data.caretakerId == request.auth.uid);
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+    
+    // ========================================
+    // PAYMENTS COLLECTION
+    // ========================================
+    match /payments/{paymentId} {
+      // Users: Read/Create their own payments
+      // Caretaker: Read payments for their bookings
+      // Admin: Full access
+      allow read: if isAdmin() || 
+                     (isAuthenticated() && resource.data.userId == request.auth.uid) ||
+                     (isCaretaker() && resource.data.caretakerId == request.auth.uid);
+      allow create: if true; // ✅ Anyone can create payment (guest payment)
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+    
+    // ========================================
+    // AVAILABILITY COLLECTION
+    // ========================================
+    match /availability/{availabilityId} {
+      // Public: Read caretaker availability
+      // Caretaker: Update own availability
+      // Admin: Full access
+      allow read: if true; // ✅ Public read for booking
+      allow create: if isCaretaker();
+      allow update: if isAdmin() || 
+                       (isCaretaker() && resource.data.caretakerId == request.auth.uid);
+      allow delete: if isAdmin();
+    }
+    
+    // ========================================
+    // SERVICES COLLECTION
+    // ========================================
+    match /services/{serviceId} {
+      // Public: Read all services
+      // Admin: Full access
+      allow read: if true; // ✅ Public read
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+    
+    // ========================================
+    // SETTINGS/CONFIG COLLECTION
+    // ========================================
+    match /settings/{settingId} {
+      // Public: Read public settings
+      // Admin: Full access
+      allow read: if true; // ✅ Public read for app config
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+    
+    // ========================================
+    // ANALYTICS COLLECTION
+    // ========================================
+    match /analytics/{analyticId} {
+      // Admin: Full access
+      allow read: if isAdmin();
+      allow create: if isAuthenticated();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+    
+    // ========================================
+    // DEFAULT DENY
+    // ========================================
+    // Deny access to any collection not explicitly defined above
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

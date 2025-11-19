@@ -1,0 +1,53 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+class CaretakerProfile {
+  final String userId;
+  final String fullName;
+  final String bio;
+  final List<String> services;
+  final List<String> experience;
+  final String hourlyRate;
+  final bool isVerified;
+  final List<String> verificationDocuments;
+  final Map<String, bool> availability;
+
+  CaretakerProfile({
+    required this.userId,
+    required this.fullName,
+    required this.bio,
+    required this.services,
+    required this.experience,
+    required this.hourlyRate,
+    required this.isVerified,
+    required this.verificationDocuments,
+    required this.availability,
+  });
+
+  factory CaretakerProfile.fromMap(Map<String, dynamic> map) {
+    return CaretakerProfile(
+      userId: map['userId'] as String,
+      fullName: map['fullName'] as String,
+      bio: map['bio'] as String,
+      services: List<String>.from(map['services']),
+      experience: List<String>.from(map['experience']),
+      hourlyRate: map['hourlyRate'] as String,
+      isVerified: map['isVerified'] as bool,
+      verificationDocuments: List<String>.from(map['verificationDocuments']),
+      availability: Map<String, bool>.from(map['availability']),
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'userId': userId,
+      'fullName': fullName,
+      'bio': bio,
+      'services': services,
+      'experience': experience,
+      'hourlyRate': hourlyRate,
+      'isVerified': isVerified,
+      'verificationDocuments': verificationDocuments,
+      'availability': availability,
+    };
+  }
+}

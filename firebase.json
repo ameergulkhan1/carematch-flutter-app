@@ -1,0 +1,38 @@
+{
+  "firestore": {
+    "database": "(default)",
+    "location": "eur3",
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "flowing-bazaar-468814-g0",
+          "appId": "1:409779602382:android:0c6204e4b1ec5400e0a19f",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "flowing-bazaar-468814-g0",
+          "configurations": {
+            "android": "1:409779602382:android:0c6204e4b1ec5400e0a19f",
+            "ios": "1:409779602382:ios:5d02ffe7b24bbc35e0a19f",
+            "macos": "1:409779602382:ios:5d02ffe7b24bbc35e0a19f",
+            "web": "1:409779602382:web:39f13144f66136b3e0a19f",
+            "windows": "1:409779602382:web:31118341fce48ceae0a19f"
+          }
+        }
+      }
+    }
+  },
+  "remoteconfig": {
+    "template": "remoteconfig.template.json"
+  },
+  "extensions": {}
+}

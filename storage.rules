@@ -1,0 +1,65 @@
+rules_version = '2';
+
+// Firebase Storage Rules for CareMatch
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check if user is the owner
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return isAuthenticated() && 
+             get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // Helper function to validate file size (max 5MB)
+    function isValidSize() {
+      return request.resource.size <= 5 * 1024 * 1024;
+    }
+    
+    // Helper function to validate file type
+    function isValidFileType() {
+      return request.resource.contentType.matches('image/.*') || 
+             request.resource.contentType == 'application/pdf';
+    }
+    
+    // Caregiver documents
+    match /caregiver_documents/{userId}/{documentType}/{fileName} {
+      // Allow read if user is owner or admin
+      allow read: if isOwner(userId) || isAdmin();
+      
+      // Allow write (upload) if user is owner, file is valid type and size
+      allow write: if isOwner(userId) && isValidFileType() && isValidSize();
+      
+      // Allow delete if user is owner or admin
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+    
+    // Profile images
+    match /profile_images/{userId}/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId) && isValidFileType() && isValidSize();
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+    
+    // Care plan attachments
+    match /care_plan_attachments/{carePlanId}/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isValidFileType() && isValidSize();
+      allow delete: if isAuthenticated();
+    }
+    
+    // Default deny all other paths
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
