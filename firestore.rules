@@ -51,6 +51,11 @@ service cloud.firestore {
         allow read, write: if isAdmin() || isOwner(userId);
       }
       
+      // Favorites subcollection
+      match /favorites/{caregiverId} {
+        allow read, write: if isAdmin() || isOwner(userId);
+      }
+      
       // Document history subcollection
       match /document_history/{documentId} {
         allow read, write: if isAdmin() || isOwner(userId);

@@ -61,10 +61,21 @@ class ClientUser {
       state: data['state'],
       zipCode: data['zipCode'],
       isEmailVerified: data['isEmailVerified'] ?? false,
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
-      updatedAt: data['updatedAt'] != null ? (data['updatedAt'] as Timestamp).toDate() : null,
+      createdAt: _parseDateTime(data['createdAt']),
+      updatedAt: data['updatedAt'] != null ? _parseDateTime(data['updatedAt']) : null,
       profileImageUrl: data['profileImageUrl'],
     );
+  }
+
+  // Helper to parse DateTime from Timestamp or String
+  static DateTime _parseDateTime(dynamic value) {
+    if (value is Timestamp) {
+      return value.toDate();
+    } else if (value is String) {
+      return DateTime.parse(value);
+    } else {
+      return DateTime.now();
+    }
   }
 
   // Copy with method for updates

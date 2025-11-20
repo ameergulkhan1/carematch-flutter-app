@@ -17,6 +17,7 @@ import 'features/auth/screens/client_signup_step1.dart';
 import 'features/auth/screens/client_signup_step2.dart';
 import 'features/auth/screens/client_signup_step3.dart';
 import 'features/client/screens/client_dashboard.dart';
+import 'features/client/screens/search_caregivers_screen.dart';
 import 'features/caregiver/screens/caregiver_signup_step1.dart';
 import 'features/caregiver/screens/caregiver_signup_step2.dart';
 import 'features/caregiver/screens/caregiver_signup_step3.dart';
@@ -97,6 +98,7 @@ class CareMatchApp extends StatelessWidget {
           
           // Client Routes
           AppRoutes.clientDashboard: (context) => const ClientDashboard(),
+          '/search-caregivers': (context) => const SearchCaregiversScreen(),
           
           // Admin Routes
           AdminRoutes.adminLogin: (context) => const AdminLoginScreen(),

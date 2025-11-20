@@ -35,7 +35,9 @@ class CTASection extends StatelessWidget {
                 children: [
                   PrimaryButton(
                     text: 'Find a Caregiver',
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/search-caregivers');
+                    },
                     icon: Icons.search,
                   ),
                   SecondaryButton(

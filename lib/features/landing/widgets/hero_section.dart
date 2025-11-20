@@ -69,7 +69,9 @@ class HeroSection extends StatelessWidget {
                 children: [
                   PrimaryButton(
                     text: 'Find a Caregiver',
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/search-caregivers');
+                    },
                     icon: Icons.search,
                   ),
                   ElevatedButton(
@@ -131,7 +133,13 @@ class HeroSection extends StatelessWidget {
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 32),
-        PrimaryButton(text: 'Find a Caregiver', onPressed: () {}, width: double.infinity),
+        PrimaryButton(
+          text: 'Find a Caregiver',
+          onPressed: () {
+            Navigator.pushNamed(context, '/search-caregivers');
+          },
+          width: double.infinity,
+        ),
         const SizedBox(height: 16),
         SecondaryButton(
           text: 'Become a Caregiver',

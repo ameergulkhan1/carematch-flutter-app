@@ -4,9 +4,71 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_text_styles.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../services/booking_service.dart';
+import '../../../services/caregiver_search_service.dart';
+import '../../../models/booking_model.dart';
+import '../../../models/caregiver_user_model.dart';
+import 'search_caregivers_screen.dart';
+import 'saved_caregivers_screen.dart';
+import 'client_bookings_screen.dart';
 
-class ClientDashboard extends StatelessWidget {
+class ClientDashboard extends StatefulWidget {
   const ClientDashboard({super.key});
+
+  @override
+  State<ClientDashboard> createState() => _ClientDashboardState();
+}
+
+class _ClientDashboardState extends State<ClientDashboard> {
+  final BookingService _bookingService = BookingService();
+  final CaregiverSearchService _searchService = CaregiverSearchService();
+  
+  int _activeBookings = 0;
+  int _completedBookings = 0;
+  int _savedCaregivers = 0;
+  List<BookingModel> _upcomingBookings = [];
+  List<CaregiverUser> _topCaregivers = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDashboardData();
+  }
+
+  Future<void> _loadDashboardData() async {
+    setState(() => _isLoading = true);
+    
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final userId = authProvider.currentUser?.uid;
+      
+      if (userId != null) {
+        // Load statistics
+        final activeCount = await _bookingService.getActiveBookingsCount(userId);
+        final completedCount = await _bookingService.getCompletedBookingsCount(userId);
+        final savedCount = (await _searchService.getFavoriteCaregivers(userId)).length;
+        
+        // Load upcoming bookings
+        final upcoming = await _bookingService.getUpcomingBookings(userId);
+        
+        // Load top caregivers
+        final topCaregivers = await _searchService.getTopRatedCaregivers(limit: 6);
+        
+        setState(() {
+          _activeBookings = activeCount;
+          _completedBookings = completedCount;
+          _savedCaregivers = savedCount;
+          _upcomingBookings = upcoming;
+          _topCaregivers = topCaregivers;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading dashboard data: $e');
+      setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -141,6 +203,38 @@ class ClientDashboard extends StatelessWidget {
                     ),
                     const SizedBox(height: 32),
 
+                    // Statistics
+                    Text('Overview', style: AppTextStyles.headlineMedium),
+                    const SizedBox(height: 16),
+                    if (_isLoading)
+                      const Center(child: CircularProgressIndicator())
+                    else
+                      Wrap(
+                        spacing: 16,
+                        runSpacing: 16,
+                        children: [
+                          _buildStatCard(
+                            icon: Icons.pending_actions,
+                            title: 'Active Bookings',
+                            value: _activeBookings.toString(),
+                            color: AppColors.primary,
+                          ),
+                          _buildStatCard(
+                            icon: Icons.check_circle,
+                            title: 'Completed',
+                            value: _completedBookings.toString(),
+                            color: AppColors.success,
+                          ),
+                          _buildStatCard(
+                            icon: Icons.favorite,
+                            title: 'Saved Caregivers',
+                            value: _savedCaregivers.toString(),
+                            color: AppColors.error,
+                          ),
+                        ],
+                      ),
+                    const SizedBox(height: 32),
+
                     // Quick Actions
                     Text('Quick Actions', style: AppTextStyles.headlineMedium),
                     const SizedBox(height: 16),
@@ -153,21 +247,30 @@ class ClientDashboard extends StatelessWidget {
                           icon: Icons.search,
                           title: 'Find Caregivers',
                           description: 'Search for trusted caregivers',
-                          onTap: () {},
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const SearchCaregiversScreen()),
+                          ),
                         ),
                         _buildActionCard(
                           context,
                           icon: Icons.calendar_month,
                           title: 'My Bookings',
                           description: 'View and manage bookings',
-                          onTap: () {},
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const ClientBookingsScreen()),
+                          ),
                         ),
                         _buildActionCard(
                           context,
                           icon: Icons.favorite_outline,
                           title: 'Favorites',
                           description: 'Saved caregivers',
-                          onTap: () {},
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const SavedCaregiversScreen()),
+                          ),
                         ),
                         _buildActionCard(
                           context,
@@ -178,6 +281,51 @@ class ClientDashboard extends StatelessWidget {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 32),
+
+                    // Upcoming Bookings
+                    if (_upcomingBookings.isNotEmpty) ...[
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Upcoming Bookings', style: AppTextStyles.headlineMedium),
+                          TextButton(
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const ClientBookingsScreen()),
+                            ),
+                            child: const Text('View All'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      ..._upcomingBookings.take(3).map((booking) => _buildBookingCard(booking)),
+                      const SizedBox(height: 32),
+                    ],
+
+                    // Top Caregivers
+                    if (_topCaregivers.isNotEmpty) ...[
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Top Rated Caregivers', style: AppTextStyles.headlineMedium),
+                          TextButton(
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const SearchCaregiversScreen()),
+                            ),
+                            child: const Text('View All'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Wrap(
+                        spacing: 16,
+                        runSpacing: 16,
+                        children: _topCaregivers.map((caregiver) => _buildCaregiverCard(caregiver)).toList(),
+                      ),
+                      const SizedBox(height: 32),
+                    ],
                     const SizedBox(height: 32),
 
                     // Profile Summary
@@ -307,5 +455,222 @@ class ClientDashboard extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  Widget _buildStatCard({
+    required IconData icon,
+    required String title,
+    required String value,
+    required Color color,
+  }) {
+    return Container(
+      width: 250,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadow.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: color, size: 28),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  value,
+                  style: AppTextStyles.displaySmall.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  title,
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBookingCard(BookingModel booking) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadow.withOpacity(0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(Icons.calendar_month, color: AppColors.primary),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  booking.services.isNotEmpty ? booking.services.first : 'Service',
+                  style: AppTextStyles.titleMedium,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${booking.startDate.day}/${booking.startDate.month}/${booking.startDate.year} at ${booking.startTime}',
+                  style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: _getStatusColor(booking.status).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              _getStatusText(booking.status),
+              style: AppTextStyles.labelSmall.copyWith(
+                color: _getStatusColor(booking.status),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCaregiverCard(CaregiverUser caregiver) {
+    return Container(
+      width: 250,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadow.withOpacity(0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 24,
+                backgroundColor: AppColors.primary.withOpacity(0.1),
+                child: const Icon(Icons.person, color: AppColors.primary),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      caregiver.fullName,
+                      style: AppTextStyles.titleSmall,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      caregiver.verificationStatus == 'approved' ? 'Verified' : 'Pending',
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: caregiver.verificationStatus == 'approved' ? AppColors.success : AppColors.warning,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (caregiver.specializations.isNotEmpty)
+            Text(
+              caregiver.specializations.take(2).join(', '),
+              style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          const SizedBox(height: 8),
+          Text(
+            caregiver.yearsOfExperience != null ? '${caregiver.yearsOfExperience} years experience' : 'Experience not specified',
+            style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getStatusColor(BookingStatus status) {
+    switch (status) {
+      case BookingStatus.confirmed:
+        return AppColors.success;
+      case BookingStatus.pending:
+        return AppColors.warning;
+      case BookingStatus.inProgress:
+        return AppColors.info;
+      case BookingStatus.completed:
+        return AppColors.success;
+      case BookingStatus.cancelled:
+      case BookingStatus.rejected:
+        return AppColors.error;
+    }
+  }
+
+  String _getStatusText(BookingStatus status) {
+    switch (status) {
+      case BookingStatus.pending:
+        return 'Pending';
+      case BookingStatus.confirmed:
+        return 'Confirmed';
+      case BookingStatus.inProgress:
+        return 'In Progress';
+      case BookingStatus.completed:
+        return 'Completed';
+      case BookingStatus.cancelled:
+        return 'Cancelled';
+      case BookingStatus.rejected:
+        return 'Rejected';
+    }
   }
 }
