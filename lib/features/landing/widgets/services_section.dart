@@ -17,10 +17,10 @@ class ServicesSection extends StatelessWidget {
             children: [
               Text('Care Services We Offer', style: AppTextStyles.displaySmall),
               const SizedBox(height: 48),
-              Wrap(
+              const Wrap(
                 spacing: 24,
                 runSpacing: 24,
-                children: const [
+                children: [
                   _ServiceCard(icon: Icons.child_care, title: 'Child Care'),
                   _ServiceCard(icon: Icons.elderly, title: 'Elderly Care'),
                   _ServiceCard(icon: Icons.accessible, title: 'Special Needs'),

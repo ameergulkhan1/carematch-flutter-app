@@ -13,7 +13,7 @@ class CaregiverProvider with ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
   Map<String, String> _uploadedDocuments = {};
-  Map<String, double> _uploadProgress = {};
+  final Map<String, double> _uploadProgress = {};
 
   CaregiverUser? get currentCaregiver => _currentCaregiver;
   bool get isLoading => _isLoading;

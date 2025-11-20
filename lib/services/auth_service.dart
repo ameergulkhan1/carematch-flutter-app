@@ -193,6 +193,8 @@ class AuthService {
     required String password,
   }) async {
     try {
+      print('🔐 Attempting login for email: $email');
+      
       final userCredential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
@@ -200,20 +202,40 @@ class AuthService {
 
       final user = userCredential.user;
       if (user == null) {
+        print('❌ User credential is null');
         return {'success': false, 'message': 'Sign in failed'};
       }
+
+      print('✅ Firebase authentication successful for UID: ${user.uid}');
 
       // Get user data from Firestore
       final userDoc = await _firestore.collection('users').doc(user.uid).get();
       if (!userDoc.exists) {
+        print('❌ User document not found in Firestore for UID: ${user.uid}');
         return {'success': false, 'message': 'User profile not found'};
       }
 
-      return {'success': true, 'uid': user.uid};
+      // Get user role and verification status from Firestore document
+      final userData = userDoc.data() as Map<String, dynamic>;
+      final role = userData['role'] ?? 'client';
+      final verificationStatus = userData['verificationStatus'];
+
+      print('✅ User role: $role');
+      print('✅ Verification status: $verificationStatus');
+      print('✅ Login successful for: $email');
+
+      return {
+        'success': true,
+        'uid': user.uid,
+        'role': role,
+        'verificationStatus': verificationStatus,
+      };
     } on FirebaseAuthException catch (e) {
+      print('❌ Firebase Auth Error: ${e.code} - ${e.message}');
       return {'success': false, 'message': _getFirebaseErrorMessage(e.code)};
     } catch (e) {
-      return {'success': false, 'message': 'An unexpected error occurred'};
+      print('❌ Unexpected error during sign in: $e');
+      return {'success': false, 'message': 'An unexpected error occurred: $e'};
     }
   }
 

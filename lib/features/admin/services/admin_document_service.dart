@@ -117,7 +117,7 @@ class AdminDocumentService {
       for (var docMeta in documents) {
         await downloadDocument(docMeta['id']);
         // Add small delay between downloads
-        await Future.delayed(Duration(milliseconds: 500));
+        await Future.delayed(const Duration(milliseconds: 500));
       }
 
       return true;
@@ -192,7 +192,7 @@ class AdminDocumentService {
       html.window.open(url, '_blank');
 
       // Clean up after a delay
-      Future.delayed(Duration(seconds: 5), () {
+      Future.delayed(const Duration(seconds: 5), () {
         html.Url.revokeObjectUrl(url);
       });
 

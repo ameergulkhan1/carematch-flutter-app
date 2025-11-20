@@ -22,7 +22,7 @@ class FeaturesSection extends StatelessWidget {
                 style: AppTextStyles.bodyLarge.copyWith(color: AppColors.textSecondary),
               ),
               const SizedBox(height: 48),
-              Wrap(
+              const Wrap(
                 spacing: 32,
                 runSpacing: 32,
                 children: [

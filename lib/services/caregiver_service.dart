@@ -118,7 +118,7 @@ class CaregiverService {
       }
 
       // Validate file size (max 5MB)
-      final maxSize = 5 * 1024 * 1024; // 5MB
+      const maxSize = 5 * 1024 * 1024; // 5MB
       final fileSize = file.size;
       if (fileSize > maxSize) {
         return {

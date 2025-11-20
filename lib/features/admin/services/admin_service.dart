@@ -243,8 +243,15 @@ class AdminService {
             'caregiverId': doc.id,
             'status': data['verificationStatus'] ?? 'pending',
             'requestedAt': data['createdAt'],
+            'caregiverName': data['fullName'] ?? data['name'] ?? 'Unknown',
+            'caregiverEmail': data['email'] ?? 'N/A',
             'fullName': data['fullName'],
             'email': data['email'],
+            'phone': data['phone'],
+            'address': data['address'],
+            'specializations': data['specializations'],
+            'experience': data['experience'],
+            'hourlyRate': data['hourlyRate'],
             ...data,
           };
         }).toList();
@@ -282,22 +289,39 @@ class AdminService {
     String? notes,
   }) async {
     try {
+      // Verify admin is authenticated
+      if (currentAdmin == null) {
+        print('Error: No admin user authenticated');
+        return false;
+      }
+
       final batch = _firestore.batch();
 
-      // Update verification request
-      final requestRef = _firestore.collection('verification_requests').doc(requestId);
-      batch.update(requestRef, {
-        'status': 'approved',
-        'reviewedAt': FieldValue.serverTimestamp(),
-        'reviewedBy': currentAdmin?.uid,
-        'notes': notes,
-      });
+      // Check if verification_requests document exists before updating
+      try {
+        final requestDoc = await _firestore.collection('verification_requests').doc(requestId).get();
+        if (requestDoc.exists) {
+          // Update verification request if it exists
+          final requestRef = _firestore.collection('verification_requests').doc(requestId);
+          batch.update(requestRef, {
+            'status': 'approved',
+            'reviewedAt': FieldValue.serverTimestamp(),
+            'reviewedBy': currentAdmin!.uid,
+            'notes': notes,
+          });
+        }
+      } catch (e) {
+        print('Note: verification_requests document not found, continuing with user update: $e');
+      }
 
-      // Update caregiver status
+      // Update caregiver status (this is the primary update)
       final userRef = _firestore.collection('users').doc(caregiverId);
       batch.update(userRef, {
         'verificationStatus': 'approved',
         'isVerified': true,
+        'reviewedAt': FieldValue.serverTimestamp(),
+        'reviewedBy': currentAdmin!.uid,
+        'reviewNotes': notes,
         'updatedAt': FieldValue.serverTimestamp(),
       });
 
@@ -313,9 +337,10 @@ class AdminService {
       });
 
       await batch.commit();
+      print('✅ Verification approved successfully for caregiver: $caregiverId');
       return true;
     } catch (e) {
-      print('Error approving verification: $e');
+      print('❌ Error approving verification: $e');
       return false;
     }
   }
@@ -327,22 +352,38 @@ class AdminService {
     required String reason,
   }) async {
     try {
+      // Verify admin is authenticated
+      if (currentAdmin == null) {
+        print('Error: No admin user authenticated');
+        return false;
+      }
+
       final batch = _firestore.batch();
 
-      // Update verification request
-      final requestRef = _firestore.collection('verification_requests').doc(requestId);
-      batch.update(requestRef, {
-        'status': 'rejected',
-        'reviewedAt': FieldValue.serverTimestamp(),
-        'reviewedBy': currentAdmin?.uid,
-        'rejectionReason': reason,
-      });
+      // Check if verification_requests document exists before updating
+      try {
+        final requestDoc = await _firestore.collection('verification_requests').doc(requestId).get();
+        if (requestDoc.exists) {
+          // Update verification request if it exists
+          final requestRef = _firestore.collection('verification_requests').doc(requestId);
+          batch.update(requestRef, {
+            'status': 'rejected',
+            'reviewedAt': FieldValue.serverTimestamp(),
+            'reviewedBy': currentAdmin!.uid,
+            'rejectionReason': reason,
+          });
+        }
+      } catch (e) {
+        print('Note: verification_requests document not found, continuing with user update: $e');
+      }
 
-      // Update caregiver status
+      // Update caregiver status (this is the primary update)
       final userRef = _firestore.collection('users').doc(caregiverId);
       batch.update(userRef, {
         'verificationStatus': 'rejected',
         'rejectionReason': reason,
+        'reviewedAt': FieldValue.serverTimestamp(),
+        'reviewedBy': currentAdmin!.uid,
         'updatedAt': FieldValue.serverTimestamp(),
       });
 
@@ -358,9 +399,10 @@ class AdminService {
       });
 
       await batch.commit();
+      print('✅ Verification rejected successfully for caregiver: $caregiverId');
       return true;
     } catch (e) {
-      print('Error rejecting verification: $e');
+      print('❌ Error rejecting verification: $e');
       return false;
     }
   }

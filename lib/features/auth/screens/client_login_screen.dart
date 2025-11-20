@@ -60,7 +60,42 @@ class _ClientLoginScreenState extends State<ClientLoginScreen> {
 
     if (success) {
       if (mounted) {
-        Navigator.pushReplacementNamed(context, AppRoutes.clientDashboard);
+        // Check user role and navigate accordingly
+        final role = authProvider.userRole ?? 'client';
+        
+        if (role == 'caregiver') {
+          // Check verification status for caregivers
+          final verificationStatus = authProvider.verificationStatus ?? 'pending';
+          
+          if (verificationStatus == 'approved') {
+            // Navigate to full caregiver dashboard
+            Navigator.pushReplacementNamed(context, AppRoutes.caregiverDashboard);
+          } else if (verificationStatus == 'rejected') {
+            // Show rejection message and navigate to pending dashboard
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Your verification was rejected. Please contact support.'),
+                backgroundColor: Colors.red,
+                duration: Duration(seconds: 5),
+              ),
+            );
+            Navigator.pushReplacementNamed(context, AppRoutes.caregiverPendingDashboard);
+          } else {
+            // Pending verification - navigate to pending dashboard
+            Navigator.pushReplacementNamed(context, AppRoutes.caregiverPendingDashboard);
+          }
+        } else if (role == 'admin') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Please use admin login page'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+          await authProvider.signOut();
+        } else {
+          // Default to client dashboard
+          Navigator.pushReplacementNamed(context, AppRoutes.clientDashboard);
+        }
       }
     } else {
       if (mounted) {

@@ -162,7 +162,7 @@ class CaregiverPendingDashboard extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.access_time, color: AppColors.info, size: 24),
+                      const Icon(Icons.access_time, color: AppColors.info, size: 24),
                       const SizedBox(width: 12),
                       Text(
                         'Expected Timeline',
@@ -223,7 +223,7 @@ class CaregiverPendingDashboard extends StatelessWidget {
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Icon(Icons.email_outlined, size: 16, color: AppColors.textSecondary),
+                        const Icon(Icons.email_outlined, size: 16, color: AppColors.textSecondary),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
@@ -236,7 +236,7 @@ class CaregiverPendingDashboard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        Icon(Icons.fingerprint, size: 16, color: AppColors.textSecondary),
+                        const Icon(Icons.fingerprint, size: 16, color: AppColors.textSecondary),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(

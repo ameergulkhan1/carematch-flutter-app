@@ -212,7 +212,7 @@ class UserDataTable extends StatelessWidget {
               Text('Change role for ${user['fullName']}?'),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: selectedRole,
+                initialValue: selectedRole,
                 decoration: const InputDecoration(
                   labelText: 'Role',
                   border: OutlineInputBorder(),

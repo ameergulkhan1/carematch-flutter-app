@@ -10,6 +10,8 @@ class AuthProvider with ChangeNotifier {
   ClientUser? _clientUser;
   bool _isLoading = false;
   String? _errorMessage;
+  String? _userRole;
+  String? _verificationStatus;
 
   User? get firebaseUser => _firebaseUser;
   User? get currentUser => _firebaseUser;
@@ -17,6 +19,8 @@ class AuthProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   bool get isAuthenticated => _firebaseUser != null;
+  String? get userRole => _userRole;
+  String? get verificationStatus => _verificationStatus;
 
   AuthProvider() {
     // Listen to auth state changes
@@ -109,6 +113,8 @@ class AuthProvider with ChangeNotifier {
   }) async {
     _isLoading = true;
     _errorMessage = null;
+    _userRole = null;
+    _verificationStatus = null;
     notifyListeners();
 
     final result = await _authService.signInWithEmail(
@@ -119,6 +125,9 @@ class AuthProvider with ChangeNotifier {
     _isLoading = false;
 
     if (result['success']) {
+      // Store user role and verification status for navigation
+      _userRole = result['role'] as String?;
+      _verificationStatus = result['verificationStatus'] as String?;
       // User will be loaded automatically via auth state listener
       notifyListeners();
       return true;

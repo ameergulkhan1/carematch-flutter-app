@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
-import '../../../providers/caregiver_provider.dart';
 import '../../../shared/widgets/custom_text_field.dart';
 
 class CaregiverSignupStep1 extends StatefulWidget {
@@ -225,7 +223,7 @@ class _CaregiverSignupStep1State extends State<CaregiverSignupStep1> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.info_outline, size: 20, color: AppColors.info),
+                        const Icon(Icons.info_outline, size: 20, color: AppColors.info),
                         const SizedBox(width: 8),
                         Text(
                           'Password Requirements',
@@ -263,18 +261,18 @@ class _CaregiverSignupStep1State extends State<CaregiverSignupStep1> {
                       TextSpan(
                         text: 'I agree to the ',
                         style: Theme.of(context).textTheme.bodySmall,
-                        children: [
+                        children: const [
                           TextSpan(
                             text: 'Terms and Conditions',
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: AppColors.primary,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const TextSpan(text: ' and '),
+                          TextSpan(text: ' and '),
                           TextSpan(
                             text: 'Privacy Policy',
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: AppColors.primary,
                               fontWeight: FontWeight.bold,
                             ),
@@ -330,7 +328,7 @@ class _CaregiverSignupStep1State extends State<CaregiverSignupStep1> {
       padding: const EdgeInsets.only(bottom: 4),
       child: Row(
         children: [
-          Icon(Icons.check_circle_outline, size: 16, color: AppColors.info),
+          const Icon(Icons.check_circle_outline, size: 16, color: AppColors.info),
           const SizedBox(width: 8),
           Text(
             text,

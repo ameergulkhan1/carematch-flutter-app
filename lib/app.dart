@@ -24,6 +24,7 @@ import 'features/caregiver/screens/caregiver_signup_step3.dart';
 import 'features/caregiver/screens/caregiver_signup_step4.dart';
 import 'features/caregiver/screens/caregiver_signup_step5.dart';
 import 'features/caregiver/screens/caregiver_pending_dashboard.dart';
+import 'features/caregiver/screens/approved_dashboard/caregiver_dashboard_main.dart';
 import 'features/admin/admin_routes.dart';
 import 'features/admin/screens/admin_login_screen.dart';
 import 'features/admin/screens/admin_dashboard.dart';
@@ -94,7 +95,8 @@ class CareMatchApp extends StatelessWidget {
           },
           '/caregiver-signup-step4': (context) => const CaregiverSignupStep4(),
           '/caregiver-signup-step5': (context) => const CaregiverSignupStep5(),
-          '/caregiver-pending-dashboard': (context) => const CaregiverPendingDashboard(),
+          AppRoutes.caregiverPendingDashboard: (context) => const CaregiverPendingDashboard(),
+          AppRoutes.caregiverDashboard: (context) => const CaregiverDashboard(),
           
           // Client Routes
           AppRoutes.clientDashboard: (context) => const ClientDashboard(),

@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
@@ -336,7 +335,7 @@ class _CaregiverSignupStep5State extends State<CaregiverSignupStep5> {
                       ),
                     ),
                   );
-                }).toList(),
+                }),
 
                 const SizedBox(height: 16),
 
@@ -352,7 +351,7 @@ class _CaregiverSignupStep5State extends State<CaregiverSignupStep5> {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.info_outline, color: AppColors.info, size: 20),
+                          const Icon(Icons.info_outline, color: AppColors.info, size: 20),
                           const SizedBox(width: 8),
                           Text(
                             'Document Requirements',
