@@ -34,17 +34,22 @@ service cloud.firestore {
     // USERS COLLECTION
     // ============================================
     match /users/{userId} {
-      // Admin can read all users
-      allow get, list: if isAdmin() || isAuthenticated();
+      // Public read access for verified caregivers (for search functionality)
+      // This allows unauthenticated users to view approved caregiver profiles
+      allow get, list: if resource.data.role == 'caregiver' && 
+                          resource.data.verificationStatus == 'approved';
+      
+      // Admin has full access to all users
+      allow get, list, update, delete: if isAdmin();
+      
+      // Authenticated users can read their own data
+      allow get: if isAuthenticated() && isOwner(userId);
       
       // Allow creating own user document
       allow create: if isAuthenticated() && isOwner(userId);
       
-      // Allow updates by owner or admin
-      allow update: if isAdmin() || isOwner(userId);
-      
-      // Allow delete by owner or admin
-      allow delete: if isAdmin() || isOwner(userId);
+      // Allow updates by owner
+      allow update: if isOwner(userId);
       
       // Onboarding subcollection
       match /onboarding/{document} {
