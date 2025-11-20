@@ -30,31 +30,57 @@ class AdminService {
   /// Get platform statistics
   Future<Map<String, dynamic>> getStatistics() async {
     try {
+      // Verify admin authentication first
+      final user = _auth.currentUser;
+      if (user == null) {
+        print('Error: No authenticated user');
+        return {};
+      }
+
+      // Check if user is admin
+      final adminDoc = await _firestore.collection('users').doc(user.uid).get();
+      if (!adminDoc.exists || adminDoc.data()?['role'] != 'admin') {
+        print('Error: User is not an admin');
+        return {};
+      }
+
+      // Now fetch data with proper authentication
       final usersSnapshot = await _firestore.collection('users').get();
       final bookingsSnapshot = await _firestore.collection('bookings').get();
-      final verificationsSnapshot = await _firestore.collection('verification_requests').get();
+      
+      // Try to get verification requests, but handle permission errors gracefully
+      int pendingVerifications = 0;
+      try {
+        final verificationsSnapshot = await _firestore
+            .collection('verification_requests')
+            .where('status', isEqualTo: 'pending')
+            .get();
+        pendingVerifications = verificationsSnapshot.size;
+      } catch (e) {
+        print('Error getting verification requests: $e');
+        // Count from users collection as fallback
+        final pendingCaregivers = usersSnapshot.docs.where((doc) => 
+          doc.data()['role'] == 'caregiver' && 
+          doc.data()['verificationStatus'] == 'pending'
+        ).length;
+        pendingVerifications = pendingCaregivers;
+      }
 
       int totalUsers = usersSnapshot.size;
       int totalClients = 0;
       int totalCaregivers = 0;
       int verifiedCaregivers = 0;
-      int pendingVerifications = 0;
 
       for (var doc in usersSnapshot.docs) {
-        final role = doc.data()['role'];
+        final data = doc.data();
+        final role = data['role'];
         if (role == 'client') {
           totalClients++;
         } else if (role == 'caregiver') {
           totalCaregivers++;
-          if (doc.data()['verificationStatus'] == 'approved') {
+          if (data['verificationStatus'] == 'approved') {
             verifiedCaregivers++;
           }
-        }
-      }
-
-      for (var doc in verificationsSnapshot.docs) {
-        if (doc.data()['status'] == 'pending') {
-          pendingVerifications++;
         }
       }
 
@@ -68,7 +94,14 @@ class AdminService {
       };
     } catch (e) {
       print('Error getting statistics: $e');
-      return {};
+      return {
+        'totalUsers': 0,
+        'totalClients': 0,
+        'totalCaregivers': 0,
+        'verifiedCaregivers': 0,
+        'pendingVerifications': 0,
+        'totalBookings': 0,
+      };
     }
   }
 
@@ -167,20 +200,62 @@ class AdminService {
 
   /// Get all verification requests
   Stream<List<Map<String, dynamic>>> getVerificationRequests({String? statusFilter}) {
-    Query query = _firestore.collection('verification_requests');
+    try {
+      Query query = _firestore.collection('verification_requests');
 
-    if (statusFilter != null && statusFilter != 'all') {
-      query = query.where('status', isEqualTo: statusFilter);
+      if (statusFilter != null && statusFilter != 'all') {
+        query = query.where('status', isEqualTo: statusFilter);
+      }
+
+      return query.orderBy('requestedAt', descending: true).snapshots().map((snapshot) {
+        return snapshot.docs.map((doc) {
+          return {
+            'id': doc.id,
+            ...doc.data() as Map<String, dynamic>,
+          };
+        }).toList();
+      }).handleError((error) {
+        print('Error in getVerificationRequests stream: $error');
+        return <Map<String, dynamic>>[];
+      });
+    } catch (e) {
+      print('Error setting up verification requests stream: $e');
+      // Return empty stream on error
+      return Stream.value(<Map<String, dynamic>>[]);
     }
+  }
 
-    return query.orderBy('requestedAt', descending: true).snapshots().map((snapshot) {
-      return snapshot.docs.map((doc) {
-        return {
-          'id': doc.id,
-          ...doc.data() as Map<String, dynamic>,
-        };
-      }).toList();
-    });
+  /// Get pending caregivers from users collection (fallback method)
+  /// This is used when verification_requests collection has permission issues
+  Stream<List<Map<String, dynamic>>> getPendingCaregiversFromUsers({String? statusFilter}) {
+    try {
+      Query query = _firestore.collection('users').where('role', isEqualTo: 'caregiver');
+
+      if (statusFilter != null && statusFilter != 'all') {
+        query = query.where('verificationStatus', isEqualTo: statusFilter);
+      }
+
+      return query.snapshots().map((snapshot) {
+        return snapshot.docs.map((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          return {
+            'id': doc.id,
+            'caregiverId': doc.id,
+            'status': data['verificationStatus'] ?? 'pending',
+            'requestedAt': data['createdAt'],
+            'fullName': data['fullName'],
+            'email': data['email'],
+            ...data,
+          };
+        }).toList();
+      }).handleError((error) {
+        print('Error in getPendingCaregiversFromUsers stream: $error');
+        return <Map<String, dynamic>>[];
+      });
+    } catch (e) {
+      print('Error setting up pending caregivers stream: $e');
+      return Stream.value(<Map<String, dynamic>>[]);
+    }
   }
 
   /// Get caregiver details with documents

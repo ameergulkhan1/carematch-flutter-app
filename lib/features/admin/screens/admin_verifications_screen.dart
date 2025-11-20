@@ -88,7 +88,7 @@ class _AdminVerificationsScreenState extends State<AdminVerificationsScreen> {
 
   Widget _buildVerificationsList() {
     return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: _adminService.getVerificationRequests(
+      stream: _adminService.getPendingCaregiversFromUsers(
         statusFilter: _selectedFilter == 'all' ? null : _selectedFilter,
       ),
       builder: (context, snapshot) {
@@ -97,7 +97,22 @@ class _AdminVerificationsScreenState extends State<AdminVerificationsScreen> {
         }
 
         if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
+                const SizedBox(height: 16),
+                Text('Error loading verifications: ${snapshot.error}'),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: () => setState(() {}),
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Retry'),
+                ),
+              ],
+            ),
+          );
         }
 
         final requests = snapshot.data ?? [];
