@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_text_styles.dart';
-import '../../../providers/auth_provider.dart';
 import '../../../shared/widgets/custom_text_field.dart';
 import '../../../shared/widgets/buttons.dart';
 import 'client_signup_step2.dart';
@@ -98,9 +96,6 @@ class _ClientSignUpStep1State extends State<ClientSignUpStep1> {
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isSmallScreen = screenWidth < 600;
-
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -262,19 +257,19 @@ class _ClientSignUpStep1State extends State<ClientSignUpStep1> {
                                   style: AppTextStyles.bodyMedium.copyWith(
                                     color: AppColors.textSecondary,
                                   ),
-                                  children: [
-                                    const TextSpan(text: 'I agree to the '),
+                                  children: const [
+                                    TextSpan(text: 'I agree to the '),
                                     TextSpan(
                                       text: 'Terms of Service',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         color: AppColors.primary,
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
-                                    const TextSpan(text: ' and '),
+                                    TextSpan(text: ' and '),
                                     TextSpan(
                                       text: 'Privacy Policy',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         color: AppColors.primary,
                                         fontWeight: FontWeight.w600,
                                       ),

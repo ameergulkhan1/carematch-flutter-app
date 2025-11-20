@@ -27,7 +27,6 @@ class _CaregiverSignupStep3State extends State<CaregiverSignupStep3> {
   bool _isResending = false;
   int _resendCountdown = 60;
   Timer? _timer;
-  bool _otpSent = false;
 
   @override
   void initState() {
@@ -74,7 +73,6 @@ class _CaregiverSignupStep3State extends State<CaregiverSignupStep3> {
 
     setState(() {
       _isResending = false;
-      _otpSent = success;
     });
 
     if (success) {
@@ -181,7 +179,7 @@ class _CaregiverSignupStep3State extends State<CaregiverSignupStep3> {
             ),
             const SizedBox(height: 48),
 
-            Icon(Icons.email_outlined, size: 80, color: AppColors.primary),
+            const Icon(Icons.email_outlined, size: 80, color: AppColors.primary),
             const SizedBox(height: 32),
 
             Text(

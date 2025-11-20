@@ -74,48 +74,8 @@ class _ClientLoginScreenState extends State<ClientLoginScreen> {
     }
   }
 
-  void _handleForgotPassword() async {
-    if (_emailController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter your email address first'),
-          backgroundColor: AppColors.warning,
-        ),
-      );
-      return;
-    }
-
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
-    );
-
-    final success = await authProvider.sendPasswordReset(_emailController.text.trim());
-
-    if (mounted) Navigator.pop(context);
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            success
-                ? 'Password reset email sent. Check your inbox.'
-                : authProvider.errorMessage ?? 'Failed to send reset email',
-          ),
-          backgroundColor: success ? AppColors.success : AppColors.error,
-        ),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isSmallScreen = screenWidth < 600;
-
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -210,7 +170,9 @@ class _ClientLoginScreenState extends State<ClientLoginScreen> {
                           ],
                         ),
                         TextButton(
-                          onPressed: _handleForgotPassword,
+                          onPressed: () {
+                            Navigator.pushNamed(context, '/forgot-password');
+                          },
                           child: Text(
                             'Forgot Password?',
                             style: AppTextStyles.labelLarge.copyWith(

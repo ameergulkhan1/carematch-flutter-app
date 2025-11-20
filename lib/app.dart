@@ -11,6 +11,8 @@ import 'features/landing/screens/service_types_page.dart';
 import 'features/landing/screens/pricing_page.dart';
 import 'features/landing/screens/faq_page.dart';
 import 'features/auth/screens/client_login_screen.dart';
+import 'features/auth/screens/forgot_password_screen.dart';
+import 'features/auth/screens/email_verification_screen.dart';
 import 'features/auth/screens/client_signup_step1.dart';
 import 'features/auth/screens/client_signup_step2.dart';
 import 'features/auth/screens/client_signup_step3.dart';
@@ -55,6 +57,8 @@ class CareMatchApp extends StatelessWidget {
           
           // Authentication
           AppRoutes.login: (context) => const ClientLoginScreen(),
+          '/forgot-password': (context) => const ForgotPasswordScreen(),
+          '/email-verification': (context) => const EmailVerificationScreen(),
           AppRoutes.signupClient: (context) => const ClientSignUpStep1(),
           '/client-signup-step2': (context) {
             final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;

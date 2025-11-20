@@ -37,7 +37,6 @@ class _ClientSignUpStep3State extends State<ClientSignUpStep3> {
   bool _isResending = false;
   int _resendCountdown = 60;
   Timer? _timer;
-  bool _otpSent = false;
 
   @override
   void initState() {
@@ -85,7 +84,6 @@ class _ClientSignUpStep3State extends State<ClientSignUpStep3> {
 
     setState(() {
       _isResending = false;
-      _otpSent = success;
     });
 
     if (success) {

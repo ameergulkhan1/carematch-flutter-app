@@ -12,6 +12,7 @@ class AuthProvider with ChangeNotifier {
   String? _errorMessage;
 
   User? get firebaseUser => _firebaseUser;
+  User? get currentUser => _firebaseUser;
   ClientUser? get clientUser => _clientUser;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
@@ -143,6 +144,29 @@ class AuthProvider with ChangeNotifier {
     }
     notifyListeners();
     return result['success'];
+  }
+
+  // Send password reset email (new simplified method)
+  Future<void> sendPasswordResetEmail(String email) async {
+    await _authService.sendPasswordResetEmail(email);
+  }
+
+  // Send email verification to current user
+  Future<void> sendEmailVerification() async {
+    if (_firebaseUser != null && !_firebaseUser!.emailVerified) {
+      await _firebaseUser!.sendEmailVerification();
+    }
+  }
+
+  // Check if email is verified
+  Future<bool> checkEmailVerified() async {
+    if (_firebaseUser != null) {
+      await _firebaseUser!.reload();
+      _firebaseUser = FirebaseAuth.instance.currentUser;
+      notifyListeners();
+      return _firebaseUser?.emailVerified ?? false;
+    }
+    return false;
   }
 
   // Update client profile
