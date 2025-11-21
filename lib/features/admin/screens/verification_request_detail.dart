@@ -26,7 +26,6 @@ class _VerificationRequestDetailState extends State<VerificationRequestDetail> {
   bool _isLoading = true;
   String? _requestId;
   String? _caregiverId;
-  String? _currentStatus;
   
   final List<String> _selectedDocumentsForRevision = [];
   final List<String> _selectedRejectedDocuments = [];
@@ -58,33 +57,11 @@ class _VerificationRequestDetailState extends State<VerificationRequestDetail> {
     final caregiverData = await _verificationService.getCaregiverDetails(_caregiverId!);
     final documentHistory = await _verificationService.getDocumentHistory(_caregiverId!);
 
-    // Get current status from verification request
-    final requestDoc = await FirebaseFirestore.instance
-        .collection('verification_requests')
-        .doc(_requestId)
-        .get();
-    _currentStatus = requestDoc.data()?['status'] as String?;
-
     setState(() {
       _caregiverData = caregiverData;
       _documentHistory = documentHistory;
       _isLoading = false;
     });
-  }
-
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'pending':
-        return Colors.orange;
-      case 'approved':
-        return AppColors.success;
-      case 'rejected':
-        return AppColors.error;
-      case 'revision_requested':
-        return Colors.blue;
-      default:
-        return Colors.grey;
-    }
   }
 
   @override
@@ -254,35 +231,19 @@ class _VerificationRequestDetailState extends State<VerificationRequestDetail> {
                       final docType = entry.key;
                       final docIdOrPath = entry.value;
                       
-                      // Find matching document in history for additional info
-                      final docHistory = _documentHistory.firstWhere(
-                        (doc) => doc['documentType'] == docType,
-                        orElse: () => <String, dynamic>{},
-                      );
-                      
-                      // Get docId from history or use the value from documents map
-                      final docId = docHistory.isNotEmpty && docHistory['docId'] != null
-                          ? docHistory['docId']
-                          : (docIdOrPath.contains('/') ? null : docIdOrPath); // If it's a path, no docId
-                      
-                      // Get fileName - from history or extract from path
-                      final fileName = docHistory.isNotEmpty && docHistory['fileName'] != null
-                          ? docHistory['fileName']
-                          : docIdOrPath.split('/').last;
-                      
                       return DocumentTile(
-                        title: _formatDocumentType(docType),
-                        fileName: fileName,
-                        docType: docType,
-                        docId: docId,
-                        fileSize: docHistory.isNotEmpty 
-                            ? _formatFileSize(docHistory['fileSize'] ?? 0)
-                            : null,
-                        uploadedAt: docHistory.isNotEmpty && docHistory['uploadedAt'] != null
-                            ? (docHistory['uploadedAt'] as Timestamp).toDate()
-                            : null,
-                        onTap: () {
-                          // Document selection for review
+                        docName: docType,
+                        docUrl: docIdOrPath,
+                        isSelected: _selectedDocumentsForRevision.contains(docType),
+                        showCheckbox: verificationStatus == 'pending',
+                        onSelected: (selected) {
+                          setState(() {
+                            if (selected) {
+                              _selectedDocumentsForRevision.add(docType);
+                            } else {
+                              _selectedDocumentsForRevision.remove(docType);
+                            }
+                          });
                         },
                       );
                     }),

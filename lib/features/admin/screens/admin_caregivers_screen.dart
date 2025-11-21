@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../widgets/admin_sidebar.dart';
-import '../widgets/admin_topbar.dart';
 import '../services/admin_service.dart';
 import '../admin_routes.dart';
 
@@ -18,32 +16,16 @@ class _AdminCaregiversScreenState extends State<AdminCaregiversScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Row(
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const AdminSidebar(currentRoute: AdminRoutes.adminCaregivers),
-          Expanded(
-            child: Column(
-              children: [
-                AdminTopbar(
-                  title: 'Caregiver Management',
-                  onRefresh: () => setState(() {}),
-                ),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildFilters(),
-                        const SizedBox(height: 24),
-                        Expanded(child: _buildCaregiversList()),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
+          _buildFilters(),
+          const SizedBox(height: 24),
+          SizedBox(
+            height: MediaQuery.of(context).size.height - 200,
+            child: _buildCaregiversList(),
           ),
         ],
       ),
@@ -54,30 +36,75 @@ class _AdminCaregiversScreenState extends State<AdminCaregiversScreen> {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            const Icon(Icons.filter_list),
-            const SizedBox(width: 12),
-            const Text(
-              'Filter by Status:',
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(width: 16),
-            DropdownButton<String>(
-              value: _selectedFilter,
-              items: const [
-                DropdownMenuItem(value: 'all', child: Text('All Caregivers')),
-                DropdownMenuItem(value: 'approved', child: Text('Verified')),
-                DropdownMenuItem(value: 'pending', child: Text('Pending Verification')),
-                DropdownMenuItem(value: 'rejected', child: Text('Rejected')),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isSmallScreen = constraints.maxWidth < 600;
+            
+            if (isSmallScreen) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.filter_list),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Text(
+                          'Filter by Status:',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: DropdownButton<String>(
+                      value: _selectedFilter,
+                      isExpanded: true,
+                      items: const [
+                        DropdownMenuItem(value: 'all', child: Text('All Caregivers')),
+                        DropdownMenuItem(value: 'approved', child: Text('Verified')),
+                        DropdownMenuItem(value: 'pending', child: Text('Pending Verification')),
+                        DropdownMenuItem(value: 'rejected', child: Text('Rejected')),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedFilter = value!;
+                        });
+                      },
+                    ),
+                  ),
+                ],
+              );
+            }
+            
+            return Row(
+              children: [
+                const Icon(Icons.filter_list),
+                const SizedBox(width: 12),
+                const Text(
+                  'Filter by Status:',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(width: 16),
+                DropdownButton<String>(
+                  value: _selectedFilter,
+                  items: const [
+                    DropdownMenuItem(value: 'all', child: Text('All Caregivers')),
+                    DropdownMenuItem(value: 'approved', child: Text('Verified')),
+                    DropdownMenuItem(value: 'pending', child: Text('Pending Verification')),
+                    DropdownMenuItem(value: 'rejected', child: Text('Rejected')),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedFilter = value!;
+                    });
+                  },
+                ),
               ],
-              onChanged: (value) {
-                setState(() {
-                  _selectedFilter = value!;
-                });
-              },
-            ),
-          ],
+            );
+          },
         ),
       ),
     );

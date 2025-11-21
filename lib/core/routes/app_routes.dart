@@ -18,6 +18,11 @@ class AppRoutes {
   static const String verifyOtp = '/verify-otp';
   
   // Client Routes
+  static const String clientLogin = '/client/login';
+  static const String clientSignupStep1 = '/client/signup-step1';
+  static const String clientSignupStep2 = '/client/signup-step2';
+  static const String clientSignupStep3 = '/client/signup-step3';
+  static const String clientSignupStep4 = '/client/signup-step4';
   static const String clientDashboard = '/client/dashboard';
   static const String clientProfile = '/client/profile';
   static const String createCarePlan = '/client/care-plan/create';

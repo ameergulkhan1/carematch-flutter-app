@@ -16,7 +16,7 @@ import 'features/auth/screens/email_verification_screen.dart';
 import 'features/auth/screens/client_signup_step1.dart';
 import 'features/auth/screens/client_signup_step2.dart';
 import 'features/auth/screens/client_signup_step3.dart';
-import 'features/client/screens/client_dashboard.dart';
+import 'features/client/screens/dashboard/client_dashboard_main.dart';
 import 'features/client/screens/search_caregivers_screen.dart';
 import 'features/caregiver/screens/caregiver_signup_step1.dart';
 import 'features/caregiver/screens/caregiver_signup_step2.dart';
@@ -27,7 +27,7 @@ import 'features/caregiver/screens/caregiver_pending_dashboard.dart';
 import 'features/caregiver/screens/approved_dashboard/caregiver_dashboard_main.dart';
 import 'features/admin/admin_routes.dart';
 import 'features/admin/screens/admin_login_screen.dart';
-import 'features/admin/screens/admin_dashboard.dart';
+import 'features/admin/screens/dashboard/admin_dashboard_main.dart';
 import 'features/admin/screens/admin_users_screen.dart';
 import 'features/admin/screens/admin_caregivers_screen.dart';
 import 'features/admin/screens/admin_verifications_screen.dart';
@@ -99,12 +99,12 @@ class CareMatchApp extends StatelessWidget {
           AppRoutes.caregiverDashboard: (context) => const CaregiverDashboard(),
           
           // Client Routes
-          AppRoutes.clientDashboard: (context) => const ClientDashboard(),
+          AppRoutes.clientDashboard: (context) => const ClientDashboardMain(),
           '/search-caregivers': (context) => const SearchCaregiversScreen(),
           
           // Admin Routes
           AdminRoutes.adminLogin: (context) => const AdminLoginScreen(),
-          AdminRoutes.adminDashboard: (context) => const AdminDashboard(),
+          AdminRoutes.adminDashboard: (context) => const AdminDashboardMain(),
           AdminRoutes.adminUsers: (context) => const AdminUsersScreen(),
           AdminRoutes.adminCaregivers: (context) => const AdminCaregiversScreen(),
           AdminRoutes.adminVerifications: (context) => const AdminVerificationsScreen(),

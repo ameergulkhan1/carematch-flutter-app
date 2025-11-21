@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-import '../widgets/admin_sidebar.dart';
-import '../widgets/admin_topbar.dart';
 import '../widgets/document_card.dart';
 import '../services/admin_document_service.dart';
-import '../admin_routes.dart';
 
 class AdminDocumentsScreen extends StatefulWidget {
   const AdminDocumentsScreen({super.key});
@@ -35,37 +32,18 @@ class _AdminDocumentsScreenState extends State<AdminDocumentsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Row(
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const AdminSidebar(currentRoute: AdminRoutes.adminDocuments),
-          Expanded(
-            child: Column(
-              children: [
-                AdminTopbar(
-                  title: 'Document Management',
-                  onRefresh: () {
-                    setState(() {});
-                    _loadStatistics();
-                  },
-                ),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildStatistics(),
-                        const SizedBox(height: 24),
-                        _buildFilters(),
-                        const SizedBox(height: 24),
-                        Expanded(child: _buildDocumentsGrid()),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
+          _buildStatistics(),
+          const SizedBox(height: 24),
+          _buildFilters(),
+          const SizedBox(height: 24),
+          SizedBox(
+            height: MediaQuery.of(context).size.height - 350,
+            child: _buildDocumentsGrid(),
           ),
         ],
       ),

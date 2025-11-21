@@ -100,25 +100,105 @@ class DocumentCard extends StatelessWidget {
             const SizedBox(height: 8),
             
             // Action Buttons
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                TextButton.icon(
-                  onPressed: () => _viewDocument(context, documentService),
-                  icon: const Icon(Icons.visibility, size: 16),
-                  label: const Text('View', style: TextStyle(fontSize: 12)),
-                ),
-                TextButton.icon(
-                  onPressed: () => _downloadDocument(context, documentService),
-                  icon: const Icon(Icons.download, size: 16),
-                  label: const Text('Download', style: TextStyle(fontSize: 12)),
-                ),
-                TextButton.icon(
-                  onPressed: () => _deleteDocument(context, documentService),
-                  icon: const Icon(Icons.delete, size: 16, color: Colors.red),
-                  label: const Text('Delete', style: TextStyle(fontSize: 12, color: Colors.red)),
-                ),
-              ],
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isVerySmall = constraints.maxWidth < 280;
+                final isSmall = constraints.maxWidth < 350;
+                
+                if (isVerySmall) {
+                  // Icon-only buttons for very small screens
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      IconButton(
+                        onPressed: () => _viewDocument(context, documentService),
+                        icon: const Icon(Icons.visibility, size: 20),
+                        tooltip: 'View',
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                      ),
+                      IconButton(
+                        onPressed: () => _downloadDocument(context, documentService),
+                        icon: const Icon(Icons.download, size: 20),
+                        tooltip: 'Download',
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                      ),
+                      IconButton(
+                        onPressed: () => _deleteDocument(context, documentService),
+                        icon: const Icon(Icons.delete, size: 20, color: Colors.red),
+                        tooltip: 'Delete',
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                      ),
+                    ],
+                  );
+                }
+                
+                if (isSmall) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      TextButton.icon(
+                        onPressed: () => _viewDocument(context, documentService),
+                        icon: const Icon(Icons.visibility, size: 16),
+                        label: const Text('View', style: TextStyle(fontSize: 12)),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: () => _downloadDocument(context, documentService),
+                        icon: const Icon(Icons.download, size: 16),
+                        label: const Text('Download', style: TextStyle(fontSize: 12)),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: () => _deleteDocument(context, documentService),
+                        icon: const Icon(Icons.delete, size: 16, color: Colors.red),
+                        label: const Text('Delete', style: TextStyle(fontSize: 12, color: Colors.red)),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                        ),
+                      ),
+                    ],
+                  );
+                }
+                
+                return Wrap(
+                  spacing: 4,
+                  runSpacing: 4,
+                  alignment: WrapAlignment.spaceEvenly,
+                  children: [
+                    TextButton.icon(
+                      onPressed: () => _viewDocument(context, documentService),
+                      icon: const Icon(Icons.visibility, size: 16),
+                      label: const Text('View', style: TextStyle(fontSize: 12)),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: () => _downloadDocument(context, documentService),
+                      icon: const Icon(Icons.download, size: 16),
+                      label: const Text('Download', style: TextStyle(fontSize: 12)),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: () => _deleteDocument(context, documentService),
+                      icon: const Icon(Icons.delete, size: 16, color: Colors.red),
+                      label: const Text('Delete', style: TextStyle(fontSize: 12, color: Colors.red)),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           ],
         ),

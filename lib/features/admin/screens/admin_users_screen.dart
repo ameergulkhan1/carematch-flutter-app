@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-import '../widgets/admin_sidebar.dart';
-import '../widgets/admin_topbar.dart';
 import '../widgets/user_data_table.dart';
 import '../services/admin_service.dart';
-import '../admin_routes.dart';
 
 class AdminUsersScreen extends StatefulWidget {
   const AdminUsersScreen({super.key});
@@ -18,32 +15,16 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Row(
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const AdminSidebar(currentRoute: AdminRoutes.adminUsers),
-          Expanded(
-            child: Column(
-              children: [
-                AdminTopbar(
-                  title: 'User Management',
-                  onRefresh: () => setState(() {}),
-                ),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildFilters(),
-                        const SizedBox(height: 24),
-                        Expanded(child: _buildUsersTable()),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
+          _buildFilters(),
+          const SizedBox(height: 24),
+          SizedBox(
+            height: MediaQuery.of(context).size.height - 200,
+            child: _buildUsersTable(),
           ),
         ],
       ),
@@ -54,30 +35,75 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            const Icon(Icons.filter_list),
-            const SizedBox(width: 12),
-            const Text(
-              'Filter by Role:',
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(width: 16),
-            DropdownButton<String>(
-              value: _selectedRole,
-              items: const [
-                DropdownMenuItem(value: 'all', child: Text('All Users')),
-                DropdownMenuItem(value: 'client', child: Text('Clients')),
-                DropdownMenuItem(value: 'caregiver', child: Text('Caregivers')),
-                DropdownMenuItem(value: 'admin', child: Text('Admins')),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isSmallScreen = constraints.maxWidth < 600;
+            
+            if (isSmallScreen) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.filter_list),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Text(
+                          'Filter by Role:',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: DropdownButton<String>(
+                      value: _selectedRole,
+                      isExpanded: true,
+                      items: const [
+                        DropdownMenuItem(value: 'all', child: Text('All Users')),
+                        DropdownMenuItem(value: 'client', child: Text('Clients')),
+                        DropdownMenuItem(value: 'caregiver', child: Text('Caregivers')),
+                        DropdownMenuItem(value: 'admin', child: Text('Admins')),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedRole = value!;
+                        });
+                      },
+                    ),
+                  ),
+                ],
+              );
+            }
+            
+            return Row(
+              children: [
+                const Icon(Icons.filter_list),
+                const SizedBox(width: 12),
+                const Text(
+                  'Filter by Role:',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(width: 16),
+                DropdownButton<String>(
+                  value: _selectedRole,
+                  items: const [
+                    DropdownMenuItem(value: 'all', child: Text('All Users')),
+                    DropdownMenuItem(value: 'client', child: Text('Clients')),
+                    DropdownMenuItem(value: 'caregiver', child: Text('Caregivers')),
+                    DropdownMenuItem(value: 'admin', child: Text('Admins')),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedRole = value!;
+                    });
+                  },
+                ),
               ],
-              onChanged: (value) {
-                setState(() {
-                  _selectedRole = value!;
-                });
-              },
-            ),
-          ],
+            );
+          },
         ),
       ),
     );
