@@ -40,6 +40,10 @@ dependencies:
   flutter_local_notifications: ^19.5.0
   shared_preferences: ^2.2.2
   crypto: ^3.0.3
+  google_maps_flutter: ^2.14.0
+  flutter_dotenv: ^6.0.0
+  table_calendar: ^3.0.9
+  pdf: ^3.10.7
 
 dev_dependencies:
   flutter_test:

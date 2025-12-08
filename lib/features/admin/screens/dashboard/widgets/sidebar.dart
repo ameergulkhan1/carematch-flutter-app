@@ -8,12 +8,12 @@ class AdminSidebarNew extends StatelessWidget {
   final VoidCallback onToggle;
 
   const AdminSidebarNew({
-    Key? key,
+    super.key,
     required this.selectedIndex,
     required this.onItemSelected,
     required this.isExpanded,
     required this.onToggle,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +41,7 @@ class AdminSidebarNew extends StatelessWidget {
               mainAxisAlignment: isExpanded ? MainAxisAlignment.start : MainAxisAlignment.center,
               children: [
                 if (!isExpanded)
-                  SizedBox(
+                  const SizedBox(
                     width: 24,
                     height: 24,
                     child: Icon(
@@ -58,7 +58,7 @@ class AdminSidebarNew extends StatelessWidget {
                       color: AdminColors.primary,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Icon(
+                    child: const Icon(
                       Icons.admin_panel_settings,
                       color: Colors.white,
                       size: 22,

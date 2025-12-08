@@ -27,6 +27,8 @@ class CaregiverProvider with ChangeNotifier {
     required String password,
     required String fullName,
     required String phoneNumber,
+    String? phoneCountryCode,
+    String? phoneDialCode,
     required DateTime dateOfBirth,
     required String address,
     required String city,
@@ -43,6 +45,8 @@ class CaregiverProvider with ChangeNotifier {
         password: password,
         fullName: fullName,
         phoneNumber: phoneNumber,
+        phoneCountryCode: phoneCountryCode,
+        phoneDialCode: phoneDialCode,
         dateOfBirth: dateOfBirth,
         address: address,
         city: city,
@@ -70,6 +74,7 @@ class CaregiverProvider with ChangeNotifier {
 
   /// Send OTP for email verification
   Future<bool> sendOTP(String email, String fullName) async {
+    print('🔵 CaregiverProvider.sendOTP called for: $email');
     _isLoading = true;
     notifyListeners();
 
@@ -77,6 +82,13 @@ class CaregiverProvider with ChangeNotifier {
 
     _isLoading = false;
     notifyListeners();
+    
+    if (success) {
+      print('🟢 CaregiverProvider.sendOTP succeeded');
+    } else {
+      print('🔴 CaregiverProvider.sendOTP failed');
+    }
+    
     return success;
   }
 

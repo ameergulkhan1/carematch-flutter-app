@@ -9,13 +9,13 @@ class DocumentTile extends StatelessWidget {
   final bool showCheckbox;
 
   const DocumentTile({
-    Key? key,
+    super.key,
     required this.docName,
     required this.docUrl,
     this.isSelected = false,
     this.onSelected,
     this.showCheckbox = false,
-  }) : super(key: key);
+  });
 
   String _getDocumentDisplayName(String name) {
     switch (name) {

@@ -3,6 +3,7 @@ import 'admin_colors.dart';
 import 'widgets/sidebar.dart';
 import 'widgets/top_bar.dart';
 import 'pages/dashboard_home_page.dart';
+import 'pages/admin_bookings_page.dart';
 import '../admin_users_screen.dart';
 import '../admin_caregivers_screen.dart';
 import '../admin_verifications_screen.dart';
@@ -11,7 +12,7 @@ import '../../services/admin_auth_service.dart';
 import '../../admin_routes.dart';
 
 class AdminDashboardMain extends StatefulWidget {
-  const AdminDashboardMain({Key? key}) : super(key: key);
+  const AdminDashboardMain({super.key});
 
   @override
   State<AdminDashboardMain> createState() => _AdminDashboardMainState();
@@ -39,42 +40,64 @@ class _AdminDashboardMainState extends State<AdminDashboardMain> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AdminColors.background,
-      body: Row(
-        children: [
-          // Sidebar
-          AdminSidebarNew(
-            selectedIndex: _selectedIndex,
-            onItemSelected: (index) {
-              setState(() => _selectedIndex = index);
-            },
-            isExpanded: _isSidebarExpanded,
-            onToggle: () {
-              setState(() => _isSidebarExpanded = !_isSidebarExpanded);
-            },
-          ),
-
-          // Main content
-          Expanded(
-            child: Column(
-              children: [
-                // Top bar
-                AdminTopBarNew(
-                  title: _getPageTitle(),
-                  showSearch: _selectedIndex == 0,
-                  onRefresh: _selectedIndex == 0 ? () {
-                    setState(() {});
-                  } : null,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isMobile = constraints.maxWidth < 768;
+          final isTablet = constraints.maxWidth >= 768 && constraints.maxWidth < 1024;
+          
+          return Row(
+            children: [
+              // Sidebar - hide on mobile, show collapsed on tablet
+              if (!isMobile)
+                AdminSidebarNew(
+                  selectedIndex: _selectedIndex,
+                  onItemSelected: (index) {
+                    setState(() => _selectedIndex = index);
+                  },
+                  isExpanded: !isTablet && _isSidebarExpanded,
+                  onToggle: () {
+                    setState(() => _isSidebarExpanded = !_isSidebarExpanded);
+                  },
                 ),
 
-                // Page content
-                Expanded(
-                  child: _getSelectedPage(),
+              // Main content
+              Expanded(
+                child: Column(
+                  children: [
+                    // Top bar
+                    AdminTopBarNew(
+                      title: _getPageTitle(),
+                      showSearch: _selectedIndex == 0,
+                      onRefresh: _selectedIndex == 0 ? () {
+                        setState(() {});
+                      } : null,
+                    ),
+
+                    // Page content
+                    Expanded(
+                      child: _getSelectedPage(),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-        ],
+              ),
+            ],
+          );
+        },
       ),
+      // Mobile drawer
+      drawer: MediaQuery.of(context).size.width < 768
+          ? Drawer(
+              child: AdminSidebarNew(
+                selectedIndex: _selectedIndex,
+                onItemSelected: (index) {
+                  setState(() => _selectedIndex = index);
+                  Navigator.pop(context);
+                },
+                isExpanded: true,
+                onToggle: () {},
+              ),
+            )
+          : null,
     );
   }
 
@@ -114,7 +137,7 @@ class _AdminDashboardMainState extends State<AdminDashboardMain> {
       case 4:
         return const AdminDocumentsScreen();
       case 5:
-        return _buildBookingsPage();
+        return const AdminBookingsPage();
       case 6:
         return _buildAnalyticsPage();
       case 7:
@@ -122,38 +145,6 @@ class _AdminDashboardMainState extends State<AdminDashboardMain> {
       default:
         return const DashboardHomePage();
     }
-  }
-
-  Widget _buildBookingsPage() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.calendar_today_outlined,
-            size: 80,
-            color: Colors.grey.shade400,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Bookings Management',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey.shade600,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Coming soon - Manage all platform bookings',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey.shade500,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   Widget _buildAnalyticsPage() {

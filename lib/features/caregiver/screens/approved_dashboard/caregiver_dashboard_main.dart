@@ -11,6 +11,7 @@ import 'pages/availability_page.dart';
 import 'pages/profile_page.dart';
 import 'pages/reviews_page.dart';
 import 'pages/settings_page.dart';
+import '../../../chat/screens/chat_list_screen.dart';
 
 class CaregiverDashboard extends StatefulWidget {
   const CaregiverDashboard({super.key});
@@ -72,50 +73,75 @@ class _CaregiverDashboardState extends State<CaregiverDashboard> {
 
     return Scaffold(
       backgroundColor: CaregiverColors.lightGray,
-      body: Row(
-        children: [
-          // Sidebar
-          CaregiverSidebar(
-            isExpanded: _isSidebarExpanded,
-            selectedIndex: _selectedIndex,
-            onMenuItemTapped: (index) {
-              setState(() {
-                _selectedIndex = index;
-              });
-            },
-            onToggle: () {
-              setState(() {
-                _isSidebarExpanded = !_isSidebarExpanded;
-              });
-            },
-            caregiverName: caregiverName,
-          ),
-
-          // Main Content
-          Expanded(
-            child: Column(
-              children: [
-                // Top Bar
-                CaregiverTopBar(
-                  title: _getPageTitle(),
-                  showSearch: _selectedIndex == 0,
-                  onLogout: () async {
-                    await _auth.signOut();
-                    if (mounted) {
-                      Navigator.pushReplacementNamed(context, '/');
-                    }
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isMobile = constraints.maxWidth < 768;
+          final isTablet = constraints.maxWidth >= 768 && constraints.maxWidth < 1024;
+          
+          return Row(
+            children: [
+              // Sidebar - hide on mobile, show collapsed on tablet
+              if (!isMobile)
+                CaregiverSidebar(
+                  isExpanded: !isTablet && _isSidebarExpanded,
+                  selectedIndex: _selectedIndex,
+                  onMenuItemTapped: (index) {
+                    setState(() {
+                      _selectedIndex = index;
+                    });
                   },
+                  onToggle: () {
+                    setState(() {
+                      _isSidebarExpanded = !_isSidebarExpanded;
+                    });
+                  },
+                  caregiverName: caregiverName,
                 ),
 
-                // Page Content
-                Expanded(
-                  child: _getSelectedPage(),
+              // Main Content
+              Expanded(
+                child: Column(
+                  children: [
+                    // Top Bar
+                    CaregiverTopBar(
+                      title: _getPageTitle(),
+                      showSearch: _selectedIndex == 0,
+                      onLogout: () async {
+                        await _auth.signOut();
+                        if (mounted) {
+                          Navigator.pushReplacementNamed(context, '/');
+                        }
+                      },
+                    ),
+
+                    // Page Content
+                    Expanded(
+                      child: _getSelectedPage(),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-        ],
+              ),
+            ],
+          );
+        },
       ),
+      // Mobile drawer
+      drawer: MediaQuery.of(context).size.width < 768
+          ? Drawer(
+              child: CaregiverSidebar(
+                isExpanded: true,
+                selectedIndex: _selectedIndex,
+                onMenuItemTapped: (index) {
+                  setState(() {
+                    _selectedIndex = index;
+                  });
+                  Navigator.pop(context);
+                },
+                onToggle: () {},
+                caregiverName: caregiverName,
+              ),
+            )
+          : null,
     );
   }
 
@@ -126,12 +152,14 @@ class _CaregiverDashboardState extends State<CaregiverDashboard> {
       case 1:
         return 'My Bookings';
       case 2:
-        return 'Availability';
+        return 'Messages';
       case 3:
-        return 'My Profile';
+        return 'Availability';
       case 4:
-        return 'Reviews';
+        return 'My Profile';
       case 5:
+        return 'Reviews';
+      case 6:
         return 'Settings';
       default:
         return 'Dashboard';
@@ -147,12 +175,14 @@ class _CaregiverDashboardState extends State<CaregiverDashboard> {
       case 1:
         return const BookingsPage();
       case 2:
-        return const AvailabilityPage();
+        return const ChatListScreen();
       case 3:
-        return ProfilePage(caregiverData: _caregiverData);
+        return const AvailabilityPage();
       case 4:
-        return const ReviewsPage();
+        return ProfilePage(caregiverData: _caregiverData);
       case 5:
+        return const ReviewsPage();
+      case 6:
         return const SettingsPage();
       default:
         return DashboardPage(

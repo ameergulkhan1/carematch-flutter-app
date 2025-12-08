@@ -60,7 +60,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     _darkMode = value;
                   });
                 },
-                activeColor: CaregiverColors.primary,
+                activeThumbColor: CaregiverColors.primary,
               ),
             ),
           ]),

@@ -47,3 +47,37 @@ app.*.map.json
 # Uploaded caregiver documents (sensitive data)
 /uploads/caregiver_documents/
 !uploads/README.md
+
+# Local environment variables
+.env
+.env.local
+.env.*.local
+
+# Firebase Configuration Files (SECURITY SENSITIVE)
+**/google-services.json
+**/GoogleService-Info.plist
+lib/firebase_options.dart
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+macos/Runner/GoogleService-Info.plist
+
+# API Keys and Secrets
+**/secrets.dart
+**/api_keys.dart
+**/.credentials
+**/*.pem
+**/*.p12
+**/*.jks
+**/*.keystore
+
+# Firebase Local Config
+.firebase/
+.firebaserc
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# Environment specific configs
+config/dev.dart
+config/prod.dart
+config/staging.dart

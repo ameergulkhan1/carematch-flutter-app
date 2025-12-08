@@ -16,7 +16,9 @@ import 'features/auth/screens/email_verification_screen.dart';
 import 'features/auth/screens/client_signup_step1.dart';
 import 'features/auth/screens/client_signup_step2.dart';
 import 'features/auth/screens/client_signup_step3.dart';
+import 'features/auth/screens/client_signup_step4.dart';
 import 'features/client/screens/dashboard/client_dashboard_main.dart';
+import 'features/shared/screens/notification_screen.dart';
 import 'features/client/screens/search_caregivers_screen.dart';
 import 'features/caregiver/screens/caregiver_signup_step1.dart';
 import 'features/caregiver/screens/caregiver_signup_step2.dart';
@@ -32,6 +34,7 @@ import 'features/admin/screens/admin_users_screen.dart';
 import 'features/admin/screens/admin_caregivers_screen.dart';
 import 'features/admin/screens/admin_verifications_screen.dart';
 import 'features/admin/screens/admin_documents_screen.dart';
+import 'features/chat/screens/chat_list_screen.dart';
 
 class CareMatchApp extends StatelessWidget {
   const CareMatchApp({super.key});
@@ -76,6 +79,7 @@ class CareMatchApp extends StatelessWidget {
               fullName: args['fullName'],
             );
           },
+          AppRoutes.clientSignupStep4: (context) => const ClientSignupStep4(),
           
           // Caregiver Routes
           '/caregiver-signup-step1': (context) => const CaregiverSignupStep1(),
@@ -101,6 +105,10 @@ class CareMatchApp extends StatelessWidget {
           // Client Routes
           AppRoutes.clientDashboard: (context) => const ClientDashboardMain(),
           '/search-caregivers': (context) => const SearchCaregiversScreen(),
+          AppRoutes.notifications: (context) => const NotificationScreen(),
+          AppRoutes.clientChat: (context) => const ChatListScreen(),
+          AppRoutes.caregiverChat: (context) => const ChatListScreen(),
+          AppRoutes.chat: (context) => const ChatListScreen(),
           
           // Admin Routes
           AdminRoutes.adminLogin: (context) => const AdminLoginScreen(),

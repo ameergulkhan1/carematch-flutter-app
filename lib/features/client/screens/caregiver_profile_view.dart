@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_text_styles.dart';
 import '../../../models/caregiver_user_model.dart';
 import '../../../services/caregiver_search_service.dart';
 import '../../../providers/auth_provider.dart';
+import 'booking_request_screen.dart';
+import '../../chat/services/chat_service.dart';
+import '../../chat/screens/chat_conversation_screen.dart';
 
 class CaregiverProfileView extends StatefulWidget {
   final CaregiverUser caregiver;
@@ -92,6 +97,8 @@ class _CaregiverProfileViewState extends State<CaregiverProfileView> {
                   const SizedBox(height: 24),
                   _buildCertificationsSection(),
                   const SizedBox(height: 24),
+                  _buildAvailabilitySection(),
+                  const SizedBox(height: 24),
                   _buildContactSection(),
                   const SizedBox(height: 32),
                   _buildBookNowButton(),
@@ -173,7 +180,7 @@ class _CaregiverProfileViewState extends State<CaregiverProfileView> {
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          Icon(Icons.location_on, size: 18, color: AppColors.textSecondary),
+                          const Icon(Icons.location_on, size: 18, color: AppColors.textSecondary),
                           const SizedBox(width: 4),
                           Text(
                             '${widget.caregiver.city}, ${widget.caregiver.state}',
@@ -222,7 +229,7 @@ class _CaregiverProfileViewState extends State<CaregiverProfileView> {
             const SizedBox(height: 16),
             Row(
               children: [
-                Icon(Icons.email_outlined, size: 18, color: AppColors.textSecondary),
+                const Icon(Icons.email_outlined, size: 18, color: AppColors.textSecondary),
                 const SizedBox(width: 8),
                 Text(widget.caregiver.email, style: AppTextStyles.bodyMedium),
               ],
@@ -230,7 +237,7 @@ class _CaregiverProfileViewState extends State<CaregiverProfileView> {
             const SizedBox(height: 8),
             Row(
               children: [
-                Icon(Icons.phone_outlined, size: 18, color: AppColors.textSecondary),
+                const Icon(Icons.phone_outlined, size: 18, color: AppColors.textSecondary),
                 const SizedBox(width: 8),
                 Text(widget.caregiver.phoneNumber, style: AppTextStyles.bodyMedium),
               ],
@@ -313,7 +320,7 @@ class _CaregiverProfileViewState extends State<CaregiverProfileView> {
           children: [
             Row(
               children: [
-                Icon(Icons.person_outline, color: AppColors.primary),
+                const Icon(Icons.person_outline, color: AppColors.primary),
                 const SizedBox(width: 8),
                 Text('About', style: AppTextStyles.titleLarge),
               ],
@@ -342,7 +349,7 @@ class _CaregiverProfileViewState extends State<CaregiverProfileView> {
           children: [
             Row(
               children: [
-                Icon(Icons.medical_services_outlined, color: AppColors.primary),
+                const Icon(Icons.medical_services_outlined, color: AppColors.primary),
                 const SizedBox(width: 8),
                 Text('Specializations', style: AppTextStyles.titleLarge),
               ],
@@ -362,7 +369,7 @@ class _CaregiverProfileViewState extends State<CaregiverProfileView> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.check_circle, size: 18, color: AppColors.primary),
+                      const Icon(Icons.check_circle, size: 18, color: AppColors.primary),
                       const SizedBox(width: 8),
                       Text(
                         spec,
@@ -392,7 +399,7 @@ class _CaregiverProfileViewState extends State<CaregiverProfileView> {
           children: [
             Row(
               children: [
-                Icon(Icons.workspace_premium, color: AppColors.primary),
+                const Icon(Icons.workspace_premium, color: AppColors.primary),
                 const SizedBox(width: 8),
                 Text('Certifications', style: AppTextStyles.titleLarge),
               ],
@@ -403,7 +410,7 @@ class _CaregiverProfileViewState extends State<CaregiverProfileView> {
                 padding: const EdgeInsets.only(bottom: 12),
                 child: Row(
                   children: [
-                    Icon(Icons.verified, size: 20, color: AppColors.success),
+                    const Icon(Icons.verified, size: 20, color: AppColors.success),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(cert, style: AppTextStyles.bodyMedium),
@@ -411,7 +418,122 @@ class _CaregiverProfileViewState extends State<CaregiverProfileView> {
                   ],
                 ),
               );
-            }).toList(),
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAvailabilitySection() {
+    final availability = widget.caregiver.availability;
+    
+    // Default availability if not set
+    final defaultAvailability = {
+      'Monday': {'enabled': true, 'hours': '9:00 AM - 5:00 PM'},
+      'Tuesday': {'enabled': true, 'hours': '9:00 AM - 5:00 PM'},
+      'Wednesday': {'enabled': true, 'hours': '9:00 AM - 5:00 PM'},
+      'Thursday': {'enabled': true, 'hours': '9:00 AM - 5:00 PM'},
+      'Friday': {'enabled': true, 'hours': '9:00 AM - 5:00 PM'},
+      'Saturday': {'enabled': false, 'hours': 'Unavailable'},
+      'Sunday': {'enabled': false, 'hours': 'Unavailable'},
+    };
+    
+    final schedule = availability ?? defaultAvailability;
+    
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.access_time, color: AppColors.primary),
+                const SizedBox(width: 8),
+                Text('Availability Schedule', style: AppTextStyles.titleLarge),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ...schedule.entries.map((entry) {
+              final day = entry.key;
+              final dayData = entry.value as Map<String, dynamic>;
+              final enabled = dayData['enabled'] as bool? ?? false;
+              final hours = dayData['hours'] as String? ?? 'Not set';
+              
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: enabled
+                      ? AppColors.success.withOpacity(0.05)
+                      : Colors.grey.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: enabled
+                        ? AppColors.success.withOpacity(0.3)
+                        : Colors.grey.withOpacity(0.2),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: enabled
+                            ? AppColors.success.withOpacity(0.1)
+                            : Colors.grey.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Center(
+                        child: Text(
+                          day.substring(0, 1),
+                          style: TextStyle(
+                            color: enabled ? AppColors.success : Colors.grey,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            day,
+                            style: AppTextStyles.titleSmall.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Icon(
+                                enabled ? Icons.check_circle : Icons.cancel,
+                                size: 14,
+                                color: enabled ? AppColors.success : Colors.grey,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                hours,
+                                style: AppTextStyles.bodySmall.copyWith(
+                                  color: enabled
+                                      ? AppColors.textSecondary
+                                      : Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
           ],
         ),
       ),
@@ -428,7 +550,7 @@ class _CaregiverProfileViewState extends State<CaregiverProfileView> {
           children: [
             Row(
               children: [
-                Icon(Icons.contact_phone, color: AppColors.primary),
+                const Icon(Icons.contact_phone, color: AppColors.primary),
                 const SizedBox(width: 8),
                 Text('Contact Information', style: AppTextStyles.titleLarge),
               ],
@@ -471,33 +593,95 @@ class _CaregiverProfileViewState extends State<CaregiverProfileView> {
   }
 
   Widget _buildBookNowButton() {
-    return SizedBox(
-      width: double.infinity,
-      height: 56,
-      child: ElevatedButton.icon(
-        onPressed: widget.caregiver.verificationStatus == 'approved'
-            ? () {
-                // Navigate to booking screen
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Booking feature coming soon!')),
+    return Column(
+      children: [
+        // Chat button
+        SizedBox(
+          width: double.infinity,
+          height: 56,
+          child: OutlinedButton.icon(
+            onPressed: () async {
+              final currentUser = firebase_auth.FirebaseAuth.instance.currentUser;
+              if (currentUser != null) {
+                // Get current user's name
+                final userDoc = await FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(currentUser.uid)
+                    .get();
+                
+                final userName = userDoc.data()?['fullName'] ?? 'Client';
+                final userImage = userDoc.data()?['profileImage'];
+                
+                // Create or get chat
+                final chatService = ChatService();
+                final chatId = await chatService.createOrGetChat(
+                  userId1: currentUser.uid,
+                  userId2: widget.caregiver.uid,
+                  user1Name: userName,
+                  user2Name: widget.caregiver.fullName,
+                  user1Image: userImage,
+                  user2Image: null, // CaregiverUser doesn't have profileImage field
                 );
+                
+                // Navigate to chat
+                if (mounted) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => ChatConversationScreen(
+                        chatId: chatId,
+                        otherUserName: widget.caregiver.fullName,
+                        otherUserImage: null,
+                      ),
+                    ),
+                  );
+                }
               }
-            : null,
-        icon: const Icon(Icons.calendar_month),
-        label: Text(
-          widget.caregiver.verificationStatus == 'approved'
-              ? 'Book Now'
-              : 'Verification Pending',
-          style: AppTextStyles.buttonLarge,
+            },
+            icon: const Icon(Icons.chat_bubble_outline),
+            label: Text(
+              'Chat with ${widget.caregiver.fullName.split(' ')[0]}',
+              style: AppTextStyles.buttonLarge,
+            ),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.primary,
+              side: const BorderSide(color: AppColors.primary, width: 2),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
         ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
-          disabledBackgroundColor: AppColors.textSecondary,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          elevation: 2,
+        const SizedBox(height: 12),
+        // Book now button
+        SizedBox(
+          width: double.infinity,
+          height: 56,
+          child: ElevatedButton.icon(
+            onPressed: widget.caregiver.verificationStatus == 'approved'
+                ? () {
+                    // Navigate to booking request screen (Stage 1-2)
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => BookingRequestScreen(caregiver: widget.caregiver),
+                      ),
+                    );
+                  }
+                : null,
+            icon: const Icon(Icons.calendar_month),
+            label: Text(
+              widget.caregiver.verificationStatus == 'approved'
+                  ? 'Book Now'
+                  : 'Verification Pending',
+              style: AppTextStyles.buttonLarge,
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              disabledBackgroundColor: AppColors.textSecondary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 2,
+            ),
+          ),
         ),
-      ),
+      ],
     );
   }
 }

@@ -104,6 +104,7 @@ class CaregiverSidebar extends StatelessWidget {
     final menuItems = [
       {'icon': Icons.dashboard, 'label': 'Dashboard'},
       {'icon': Icons.calendar_today, 'label': 'Bookings'},
+      {'icon': Icons.message_outlined, 'label': 'Messages'},
       {'icon': Icons.access_time, 'label': 'Availability'},
       {'icon': Icons.person, 'label': 'Profile'},
       {'icon': Icons.star, 'label': 'Reviews'},

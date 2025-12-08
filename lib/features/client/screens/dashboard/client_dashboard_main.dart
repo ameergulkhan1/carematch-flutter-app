@@ -8,7 +8,7 @@ import '../client_bookings_screen.dart';
 import '../saved_caregivers_screen.dart';
 
 class ClientDashboardMain extends StatefulWidget {
-  const ClientDashboardMain({Key? key}) : super(key: key);
+  const ClientDashboardMain({super.key});
 
   @override
   State<ClientDashboardMain> createState() => _ClientDashboardMainState();
@@ -150,10 +150,10 @@ class _ClientDashboardMainState extends State<ClientDashboardMain> {
                 ),
                 child: Column(
                   children: [
-                    CircleAvatar(
+                    const CircleAvatar(
                       radius: 50,
                       backgroundColor: ClientColors.primary,
-                      child: const Icon(
+                      child: Icon(
                         Icons.person,
                         size: 50,
                         color: Colors.white,

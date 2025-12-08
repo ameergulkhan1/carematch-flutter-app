@@ -4,11 +4,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:file_picker/file_picker.dart';
 import '../models/caregiver_user_model.dart';
 import 'document_storage_service.dart';
+import 'auth_service.dart';
 
 class CaregiverService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final DocumentStorageService _documentStorage = DocumentStorageService();
+  final AuthService _authService = AuthService();
 
   /// Register new caregiver (Step 1 & 2: Auth + Basic Info)
   Future<Map<String, dynamic>> registerCaregiver({
@@ -16,6 +18,8 @@ class CaregiverService {
     required String password,
     required String fullName,
     required String phoneNumber,
+    String? phoneCountryCode,
+    String? phoneDialCode,
     required DateTime dateOfBirth,
     required String address,
     required String city,
@@ -23,6 +27,15 @@ class CaregiverService {
     required String zipCode,
   }) async {
     try {
+      // Check if email already exists with a different role
+      final existingRole = await _authService.checkEmailRole(email);
+      if (existingRole != null && existingRole != 'caregiver') {
+        return {
+          'success': false,
+          'message': 'This email is already registered as a $existingRole. Please use a different email or login as $existingRole.'
+        };
+      }
+
       // Create Firebase Auth user
       final userCredential = await _auth.createUserWithEmailAndPassword(
         email: email,
@@ -40,6 +53,8 @@ class CaregiverService {
         email: email,
         fullName: fullName,
         phoneNumber: phoneNumber,
+        phoneCountryCode: phoneCountryCode,
+        phoneDialCode: phoneDialCode,
         dateOfBirth: dateOfBirth,
         address: address,
         city: city,

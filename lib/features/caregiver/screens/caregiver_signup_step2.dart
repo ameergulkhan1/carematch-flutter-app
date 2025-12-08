@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../providers/caregiver_provider.dart';
 import '../../../shared/widgets/custom_text_field.dart';
+import '../../../shared/widgets/phone_number_input.dart';
 
 class CaregiverSignupStep2 extends StatefulWidget {
   final String email;
@@ -30,6 +31,8 @@ class _CaregiverSignupStep2State extends State<CaregiverSignupStep2> {
   final _zipCodeController = TextEditingController();
 
   DateTime? _selectedDate;
+  String _phoneCountryCode = 'US';
+  String _phoneDialCode = '+1';
 
   @override
   void dispose() {
@@ -139,6 +142,8 @@ class _CaregiverSignupStep2State extends State<CaregiverSignupStep2> {
       password: widget.password,
       fullName: _fullNameController.text.trim(),
       phoneNumber: _phoneController.text.replaceAll(RegExp(r'[^\d]'), ''),
+      phoneCountryCode: _phoneCountryCode,
+      phoneDialCode: _phoneDialCode,
       dateOfBirth: _selectedDate!,
       address: _addressController.text.trim(),
       city: _cityController.text.trim(),
@@ -271,17 +276,16 @@ class _CaregiverSignupStep2State extends State<CaregiverSignupStep2> {
               ),
               const SizedBox(height: 16),
 
-              CustomTextField(
+              PhoneNumberInput(
                 controller: _phoneController,
-                label: 'Phone Number',
-                hint: '(555) 123-4567',
-                keyboardType: TextInputType.phone,
-                prefixIcon: const Icon(Icons.phone_outlined),
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                  LengthLimitingTextInputFormatter(10),
-                ],
-                validator: _validatePhone,
+                labelText: 'Phone Number',
+                hintText: 'Enter your phone number',
+                onCountryChanged: (country) {
+                  setState(() {
+                    _phoneCountryCode = country.code;
+                    _phoneDialCode = country.dialCode;
+                  });
+                },
               ),
               const SizedBox(height: 16),
 

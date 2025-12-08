@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_config.dart';
 import '../../../providers/caregiver_provider.dart';
 
 class CaregiverSignupStep3 extends StatefulWidget {
@@ -63,6 +64,8 @@ class _CaregiverSignupStep3State extends State<CaregiverSignupStep3> {
   }
 
   Future<void> _sendOTP() async {
+    print('🟡 CaregiverSignupStep3._sendOTP called for email: ${widget.email}, name: ${widget.fullName}');
+    
     final caregiverProvider = Provider.of<CaregiverProvider>(context, listen: false);
     
     setState(() {
@@ -76,12 +79,29 @@ class _CaregiverSignupStep3State extends State<CaregiverSignupStep3> {
     });
 
     if (success) {
+      print('✅ CaregiverSignupStep3: OTP sent successfully');
       _startCountdown();
+      if (mounted) {
+        // Show different message based on EmailJS configuration
+        final message = AppConfig.emailJsPublicKey.isEmpty
+            ? 'Verification code generated! Check the console/terminal for the code.'
+            : 'Verification code sent to your email';
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: AppColors.success,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } else {
+      print('❌ CaregiverSignupStep3: OTP sending failed');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Verification code sent to your email'),
-            backgroundColor: AppColors.success,
+            content: Text('Failed to send verification code. Please try again.'),
+            backgroundColor: AppColors.error,
           ),
         );
       }

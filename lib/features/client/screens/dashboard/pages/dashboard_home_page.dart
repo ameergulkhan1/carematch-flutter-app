@@ -8,7 +8,7 @@ import '../../../../../models/caregiver_user_model.dart';
 import 'package:provider/provider.dart';
 
 class DashboardHomePage extends StatefulWidget {
-  const DashboardHomePage({Key? key}) : super(key: key);
+  const DashboardHomePage({super.key});
 
   @override
   State<DashboardHomePage> createState() => _DashboardHomePageState();
@@ -617,12 +617,12 @@ class _DashboardHomePageState extends State<DashboardHomePage> {
                   overflow: TextOverflow.ellipsis,
                 ),
               const SizedBox(height: 8),
-              Row(
+              const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.star, color: ClientColors.warning, size: 16),
-                  const SizedBox(width: 4),
-                  const Text(
+                  Icon(Icons.star, color: ClientColors.warning, size: 16),
+                  SizedBox(width: 4),
+                  Text(
                     '4.8',
                     style: TextStyle(
                       fontSize: 13,

@@ -28,7 +28,9 @@ class AuthService {
   // Send OTP via Email (using Firebase or custom method)
   Future<bool> sendOTPEmail(String email, String name) async {
     try {
+      print('🔄 Starting OTP generation for: $email');
       final otp = _generateOTP();
+      print('✓ OTP generated: $otp');
       final expiryTime = DateTime.now().add(const Duration(minutes: AppConfig.otpExpiryMinutes));
 
       // Store OTP in memory
@@ -36,16 +38,23 @@ class AuthService {
         'otp': otp,
         'expiry': expiryTime,
       };
+      print('✓ OTP stored in memory');
 
       // Also store in Firestore for persistence
-      await _firestore.collection('otp_codes').doc(email).set({
-        'otp': otp,
-        'expiryTime': Timestamp.fromDate(expiryTime),
-        'createdAt': Timestamp.now(),
-      });
+      try {
+        await _firestore.collection('otp_codes').doc(email).set({
+          'otp': otp,
+          'expiryTime': Timestamp.fromDate(expiryTime),
+          'createdAt': Timestamp.now(),
+        });
+        print('✓ OTP stored in Firestore');
+      } catch (firestoreError) {
+        print('⚠️ Firestore storage failed (continuing anyway): $firestoreError');
+      }
 
       // Send OTP via EmailJS if configured
       if (AppConfig.emailJsPublicKey.isNotEmpty) {
+        print('📤 Attempting to send email via EmailJS...');
         try {
           final url = Uri.parse('https://api.emailjs.com/api/v1.0/email/send');
           final response = await http.post(
@@ -69,25 +78,28 @@ class AuthService {
 
           if (response.statusCode == 200) {
             print('✓ OTP email sent successfully to $email');
-            return true;
           } else {
             print('✗ EmailJS error: ${response.statusCode} - ${response.body}');
           }
         } catch (emailError) {
           print('✗ Email sending failed: $emailError');
         }
+      } else {
+        print('ℹ️ EmailJS not configured - email will not be sent');
       }
       
       // Always print to console for development/testing
       print('═══════════════════════════════════════');
       print('📧 OTP for $email');
+      print('👤 Name: $name');
       print('🔐 Code: $otp');
       print('⏰ Valid for ${AppConfig.otpExpiryMinutes} minutes');
       print('═══════════════════════════════════════');
 
       return true;
     } catch (e) {
-      print('Error sending OTP: $e');
+      print('❌ Error sending OTP: $e');
+      print('Stack trace: ${StackTrace.current}');
       return false;
     }
   }
@@ -139,6 +151,27 @@ class AuthService {
     }
   }
 
+  // Check if email exists with different role
+  Future<String?> checkEmailRole(String email) async {
+    try {
+      // Query Firestore for existing user with this email
+      final querySnapshot = await _firestore
+          .collection('users')
+          .where('email', isEqualTo: email)
+          .limit(1)
+          .get();
+      
+      if (querySnapshot.docs.isNotEmpty) {
+        final userData = querySnapshot.docs.first.data();
+        return userData['role'] as String?;
+      }
+      return null;
+    } catch (e) {
+      print('Error checking email role: $e');
+      return null;
+    }
+  }
+
   // Register new client user
   Future<Map<String, dynamic>> registerClient({
     required String email,
@@ -151,6 +184,15 @@ class AuthService {
     String? zipCode,
   }) async {
     try {
+      // Check if email already exists with a different role
+      final existingRole = await checkEmailRole(email);
+      if (existingRole != null && existingRole != 'client') {
+        return {
+          'success': false,
+          'message': 'This email is already registered as a $existingRole. Please use a different email or login as $existingRole.'
+        };
+      }
+
       // Create Firebase Auth user
       final userCredential = await _auth.createUserWithEmailAndPassword(
         email: email,

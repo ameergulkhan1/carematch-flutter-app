@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import '../client_colors.dart';
 import '../../../../../providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 import '../../../../../core/routes/app_routes.dart';
+import '../../../../../services/notification_service.dart';
+import '../../../../../features/shared/widgets/notification_panel.dart';
 
 class ClientTopBar extends StatelessWidget {
   final String title;
   final bool showSearch;
 
   const ClientTopBar({
-    Key? key,
+    super.key,
     required this.title,
     this.showSearch = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -51,11 +54,11 @@ class ClientTopBar extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
               ),
               child: TextField(
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   hintText: 'Search...',
-                  prefixIcon: const Icon(Icons.search, size: 20),
+                  prefixIcon: Icon(Icons.search, size: 20),
                   border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                  contentPadding: EdgeInsets.symmetric(vertical: 10),
                 ),
                 onChanged: (value) {
                   // TODO: Implement search
@@ -66,28 +69,67 @@ class ClientTopBar extends StatelessWidget {
           ],
 
           // Notifications
-          Stack(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.notifications_outlined),
-                onPressed: () {
-                  // TODO: Navigate to notifications
-                },
-                color: ClientColors.dark,
-              ),
-              Positioned(
-                right: 8,
-                top: 8,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    color: ClientColors.danger,
-                    shape: BoxShape.circle,
+          StreamBuilder<int>(
+            stream: NotificationService().getUnreadCount(
+              firebase_auth.FirebaseAuth.instance.currentUser?.uid ?? '',
+            ),
+            builder: (context, snapshot) {
+              final unreadCount = snapshot.data ?? 0;
+              return Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.notifications_outlined),
+                    onPressed: () {
+                      showGeneralDialog(
+                        context: context,
+                        barrierDismissible: true,
+                        barrierLabel: 'Notifications',
+                        barrierColor: Colors.black54,
+                        transitionDuration: const Duration(milliseconds: 300),
+                        pageBuilder: (context, animation, secondaryAnimation) {
+                          return Align(
+                            alignment: Alignment.centerRight,
+                            child: SlideTransition(
+                              position: Tween<Offset>(
+                                begin: const Offset(1, 0),
+                                end: Offset.zero,
+                              ).animate(animation),
+                              child: const NotificationPanel(),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                    color: ClientColors.dark,
                   ),
-                ),
-              ),
-            ],
+                  if (unreadCount > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: ClientColors.danger,
+                          shape: BoxShape.circle,
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        child: Text(
+                          unreadCount > 9 ? '9+' : '$unreadCount',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
           const SizedBox(width: 8),
 

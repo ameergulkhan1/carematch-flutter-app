@@ -25,12 +25,9 @@ class _SearchCaregiversScreenState extends State<SearchCaregiversScreen> {
   bool _showFilters = false;
   
   // Filter values
-  List<String> _selectedServices = [];
-  double _minRate = 0;
-  double _maxRate = 100;
+  final List<String> _selectedServices = [];
   int? _minExperience;
   String? _selectedCity;
-  double _minRating = 0;
   String _sortBy = 'rating'; // rating, experience, rate
   
   // Available filter options
@@ -220,11 +217,11 @@ class _SearchCaregiversScreenState extends State<SearchCaregiversScreen> {
               : null,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: AppColors.border),
+            borderSide: const BorderSide(color: AppColors.border),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: AppColors.border),
+            borderSide: const BorderSide(color: AppColors.border),
           ),
         ),
         onChanged: (_) => _applyFilters(),
@@ -280,7 +277,7 @@ class _SearchCaregiversScreenState extends State<SearchCaregiversScreen> {
                     Text('City', style: AppTextStyles.labelLarge),
                     const SizedBox(height: 8),
                     DropdownButtonFormField<String>(
-                      value: _selectedCity,
+                      initialValue: _selectedCity,
                       decoration: InputDecoration(
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -306,7 +303,7 @@ class _SearchCaregiversScreenState extends State<SearchCaregiversScreen> {
                     Text('Min. Experience', style: AppTextStyles.labelLarge),
                     const SizedBox(height: 8),
                     DropdownButtonFormField<int>(
-                      value: _minExperience,
+                      initialValue: _minExperience,
                       decoration: InputDecoration(
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -392,7 +389,7 @@ class _SearchCaregiversScreenState extends State<SearchCaregiversScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.search_off, size: 64, color: AppColors.textSecondary),
+          const Icon(Icons.search_off, size: 64, color: AppColors.textSecondary),
           const SizedBox(height: 16),
           Text('No caregivers found', style: AppTextStyles.titleMedium),
           const SizedBox(height: 8),
@@ -406,19 +403,31 @@ class _SearchCaregiversScreenState extends State<SearchCaregiversScreen> {
   }
 
   Widget _buildCaregiverGrid() {
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 400,
-        childAspectRatio: 0.75,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-      ),
-      itemCount: _filteredCaregivers.length,
-      itemBuilder: (context, index) {
-        final caregiver = _filteredCaregivers[index];
-        final isFavorite = _favoriteCaregiverIds.contains(caregiver.uid);
-        return _buildCaregiverCard(caregiver, isFavorite);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Determine number of columns based on width
+        int crossAxisCount = 1;
+        if (constraints.maxWidth >= 1200) {
+          crossAxisCount = 3;
+        } else if (constraints.maxWidth >= 768) {
+          crossAxisCount = 2;
+        }
+
+        return GridView.builder(
+          padding: const EdgeInsets.all(16),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            childAspectRatio: constraints.maxWidth < 768 ? 0.85 : 0.75,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+          ),
+          itemCount: _filteredCaregivers.length,
+          itemBuilder: (context, index) {
+            final caregiver = _filteredCaregivers[index];
+            final isFavorite = _favoriteCaregiverIds.contains(caregiver.uid);
+            return _buildCaregiverCard(caregiver, isFavorite);
+          },
+        );
       },
     );
   }
@@ -469,7 +478,7 @@ class _SearchCaregiversScreenState extends State<SearchCaregiversScreen> {
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            Icon(Icons.location_on, size: 14, color: AppColors.textSecondary),
+                            const Icon(Icons.location_on, size: 14, color: AppColors.textSecondary),
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(
@@ -507,7 +516,7 @@ class _SearchCaregiversScreenState extends State<SearchCaregiversScreen> {
                     // Experience
                     Row(
                       children: [
-                        Icon(Icons.work_outline, size: 16, color: AppColors.primary),
+                        const Icon(Icons.work_outline, size: 16, color: AppColors.primary),
                         const SizedBox(width: 8),
                         Text(
                           '$experience years experience',
@@ -599,7 +608,7 @@ class _SearchCaregiversScreenState extends State<SearchCaregiversScreen> {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 border: Border(top: BorderSide(color: AppColors.border)),
               ),
               child: Text(

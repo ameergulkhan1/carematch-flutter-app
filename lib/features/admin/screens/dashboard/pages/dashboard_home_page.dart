@@ -5,7 +5,7 @@ import '../../../services/admin_service.dart';
 import '../../../admin_routes.dart';
 
 class DashboardHomePage extends StatefulWidget {
-  const DashboardHomePage({Key? key}) : super(key: key);
+  const DashboardHomePage({super.key});
 
   @override
   State<DashboardHomePage> createState() => _DashboardHomePageState();
@@ -145,7 +145,7 @@ class _DashboardHomePageState extends State<DashboardHomePage> {
           crossAxisCount = 1;
         }
         // Calculate optimal aspect ratio based on card width
-        final spacing = 16.0;
+        const spacing = 16.0;
         final totalSpacing = spacing * (crossAxisCount - 1);
         final cardWidth = (constraints.maxWidth - totalSpacing) / crossAxisCount;
         double aspectRatio;
@@ -339,7 +339,7 @@ class _DashboardHomePageState extends State<DashboardHomePage> {
               crossAxisCount = 1;
             }
             // Calculate optimal aspect ratio based on card width
-            final spacing = 16.0;
+            const spacing = 16.0;
             final totalSpacing = spacing * (crossAxisCount - 1);
             final cardWidth = (constraints.maxWidth - totalSpacing) / crossAxisCount;
             double aspectRatio;

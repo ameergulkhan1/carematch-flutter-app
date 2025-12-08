@@ -10,7 +10,10 @@ class AppConfig {
   
   static const String emailJsServiceId = 'service_22itnmx';
   static const String emailJsTemplateId = 'template_carematch_otp'; // Update with your template ID
-  static const String emailJsPublicKey = ''; // Add your EmailJS public key here
+  static const String emailJsPublicKey = 'YOUR_PUBLIC_KEY_HERE'; // Add your EmailJS public key here
+  
+  // NOTE: If emailJsPublicKey is empty, OTP will only be printed to console
+  // For testing, check the browser console or terminal for the OTP code
   
   // OTP Configuration
   static const int otpLength = 6;

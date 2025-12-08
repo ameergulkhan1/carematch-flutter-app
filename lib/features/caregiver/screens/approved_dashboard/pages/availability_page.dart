@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../caregiver_colors.dart';
 
 class AvailabilityPage extends StatefulWidget {
@@ -9,7 +11,9 @@ class AvailabilityPage extends StatefulWidget {
 }
 
 class _AvailabilityPageState extends State<AvailabilityPage> {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   bool _isAvailable = true;
+  bool _isLoading = true;
 
   final List<Map<String, dynamic>> _weekSchedule = [
     {'day': 'Monday', 'enabled': true, 'hours': '9:00 AM - 5:00 PM'},
@@ -22,7 +26,90 @@ class _AvailabilityPageState extends State<AvailabilityPage> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _loadAvailability();
+  }
+
+  Future<void> _loadAvailability() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        final doc = await _firestore.collection('users').doc(user.uid).get();
+        final data = doc.data();
+        
+        if (data != null && data['availability'] != null) {
+          final availability = data['availability'] as Map<String, dynamic>;
+          setState(() {
+            for (int i = 0; i < _weekSchedule.length; i++) {
+              final day = _weekSchedule[i]['day'];
+              if (availability.containsKey(day)) {
+                _weekSchedule[i] = {
+                  'day': day,
+                  'enabled': availability[day]['enabled'] ?? true,
+                  'hours': availability[day]['hours'] ?? '9:00 AM - 5:00 PM',
+                };
+              }
+            }
+            _isLoading = false;
+          });
+        } else {
+          setState(() => _isLoading = false);
+        }
+      } catch (e) {
+        print('Error loading availability: $e');
+        setState(() => _isLoading = false);
+      }
+    } else {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _saveAvailability() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        final availability = <String, dynamic>{};
+        for (var day in _weekSchedule) {
+          availability[day['day']] = {
+            'enabled': day['enabled'],
+            'hours': day['hours'],
+          };
+        }
+
+        await _firestore.collection('users').doc(user.uid).update({
+          'availability': availability,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✅ Availability updated successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        print('Error saving availability: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('❌ Error saving availability: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -39,7 +126,23 @@ class _AvailabilityPageState extends State<AvailabilityPage> {
             ),
           ),
           const SizedBox(height: 16),
-          ..._weekSchedule.map(_buildDayCard),
+          ..._weekSchedule.asMap().entries.map((entry) => _buildDayCard(entry.key, entry.value)),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton.icon(
+              onPressed: _saveAvailability,
+              icon: const Icon(Icons.save),
+              label: const Text('Save Availability', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: CaregiverColors.primary,
+                foregroundColor: Colors.white,
+                elevation: 2,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -81,14 +184,14 @@ class _AvailabilityPageState extends State<AvailabilityPage> {
                 _isAvailable = value;
               });
             },
-            activeColor: CaregiverColors.secondary,
+            activeThumbColor: CaregiverColors.secondary,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildDayCard(Map<String, dynamic> day) {
+  Widget _buildDayCard(int index, Map<String, dynamic> day) {
     final isEnabled = day['enabled'] as bool;
 
     return Container(
@@ -149,12 +252,62 @@ class _AvailabilityPageState extends State<AvailabilityPage> {
               ],
             ),
           ),
+          Switch(
+            value: isEnabled,
+            onChanged: (value) {
+              setState(() {
+                _weekSchedule[index]['enabled'] = value;
+                if (!value) {
+                  _weekSchedule[index]['hours'] = 'Unavailable';
+                } else {
+                  _weekSchedule[index]['hours'] = '9:00 AM - 5:00 PM';
+                }
+              });
+            },
+            activeColor: CaregiverColors.success,
+          ),
           IconButton(
             icon: const Icon(Icons.edit_outlined, size: 20),
-            onPressed: () {
-              // TODO: Edit time slot
-            },
+            onPressed: isEnabled ? () => _editTimeSlot(index) : null,
             color: CaregiverColors.primary,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _editTimeSlot(int index) async {
+    final TextEditingController controller = TextEditingController(
+      text: _weekSchedule[index]['hours'],
+    );
+
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Edit ${_weekSchedule[index]['day']} Hours'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            hintText: 'e.g., 9:00 AM - 5:00 PM',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                _weekSchedule[index]['hours'] = controller.text;
+              });
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: CaregiverColors.primary,
+            ),
+            child: const Text('Save'),
           ),
         ],
       ),

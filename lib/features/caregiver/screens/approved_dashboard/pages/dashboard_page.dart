@@ -1,13 +1,93 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../caregiver_colors.dart';
+import '../../../../../services/enhanced_booking_service.dart';
+import '../../../../../models/booking_model.dart';
+import 'package:intl/intl.dart';
 
-class DashboardPage extends StatelessWidget {
+class DashboardPage extends StatefulWidget {
   final String caregiverName;
 
   const DashboardPage({super.key, required this.caregiverName});
 
   @override
+  State<DashboardPage> createState() => _DashboardPageState();
+}
+
+class _DashboardPageState extends State<DashboardPage> {
+  final EnhancedBookingService _bookingService = EnhancedBookingService();
+  List<BookingModel> _allBookings = [];
+  List<BookingModel> _todayBookings = [];
+  int _totalBookings = 0;
+  int _thisMonthBookings = 0;
+  int _completedBookings = 0;
+  double _averageRating = 0.0;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDashboardData();
+  }
+
+  Future<void> _loadDashboardData() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        // Load bookings
+        _bookingService.getCaregiverBookings(user.uid).listen((bookings) {
+          if (mounted) {
+            setState(() {
+              _allBookings = bookings;
+              _totalBookings = bookings.length;
+              
+              // Calculate this month's bookings
+              final now = DateTime.now();
+              _thisMonthBookings = bookings.where((b) =>
+                  b.startDate.year == now.year && b.startDate.month == now.month).length;
+              
+              // Calculate completed bookings
+              _completedBookings = bookings.where((b) =>
+                  b.status == BookingStatus.completed).length;
+              
+              // Get today's bookings
+              _todayBookings = bookings.where((b) =>
+                  b.startDate.year == now.year &&
+                  b.startDate.month == now.month &&
+                  b.startDate.day == now.day).toList();
+              
+              _isLoading = false;
+            });
+          }
+        });
+
+        // Load rating
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+        
+        if (userDoc.exists && mounted) {
+          setState(() {
+            _averageRating = (userDoc.data()?['rating'] ?? 0.0).toDouble();
+          });
+        }
+      }
+    } catch (e) {
+      print('Error loading dashboard data: $e');
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -17,18 +97,31 @@ class DashboardPage extends StatelessWidget {
           const SizedBox(height: 24),
           _buildStatsGrid(),
           const SizedBox(height: 24),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 2,
-                child: _buildRecentBookings(),
-              ),
-              const SizedBox(width: 24),
-              Expanded(
-                child: _buildTodaySchedule(),
-              ),
-            ],
+          LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth < 900) {
+                return Column(
+                  children: [
+                    _buildRecentBookings(),
+                    const SizedBox(height: 24),
+                    _buildTodaySchedule(),
+                  ],
+                );
+              }
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: _buildRecentBookings(),
+                  ),
+                  const SizedBox(width: 24),
+                  Expanded(
+                    child: _buildTodaySchedule(),
+                  ),
+                ],
+              );
+            },
           ),
         ],
       ),
@@ -53,7 +146,7 @@ class DashboardPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Welcome back, $caregiverName!',
+                  'Welcome back, ${widget.caregiverName}!',
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -74,48 +167,44 @@ class DashboardPage extends StatelessWidget {
   }
 
   Widget _buildStatsGrid() {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildStatCard(
-            'Total Bookings',
-            '24',
-            Icons.calendar_today,
-            CaregiverColors.primary,
-            '+12%',
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _buildStatCard(
-            'This Month',
-            '8',
-            Icons.event_available,
-            CaregiverColors.secondary,
-            '+24%',
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _buildStatCard(
-            'Average Rating',
-            '4.8',
-            Icons.star,
-            CaregiverColors.warning,
-            '0.2',
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _buildStatCard(
-            'Completed',
-            '16',
-            Icons.check_circle,
-            CaregiverColors.secondary,
-            '+8',
-          ),
-        ),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final crossAxisCount = constraints.maxWidth < 600 ? 2 : 4;
+        return GridView.count(
+          crossAxisCount: crossAxisCount,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: 16,
+          crossAxisSpacing: 16,
+          childAspectRatio: 1.3,
+          children: [
+            _buildStatCard(
+              'Total Bookings',
+              _totalBookings.toString(),
+              Icons.calendar_today,
+              CaregiverColors.primary,
+            ),
+            _buildStatCard(
+              'This Month',
+              _thisMonthBookings.toString(),
+              Icons.event_available,
+              CaregiverColors.secondary,
+            ),
+            _buildStatCard(
+              'Average Rating',
+              _averageRating.toStringAsFixed(1),
+              Icons.star,
+              CaregiverColors.warning,
+            ),
+            _buildStatCard(
+              'Completed',
+              _completedBookings.toString(),
+              Icons.check_circle,
+              CaregiverColors.secondary,
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -124,7 +213,6 @@ class DashboardPage extends StatelessWidget {
     String value,
     IconData icon,
     Color color,
-    String trend,
   ) {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -132,9 +220,17 @@ class DashboardPage extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.shade100,
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Container(
             padding: const EdgeInsets.all(10),
@@ -144,31 +240,26 @@ class DashboardPage extends StatelessWidget {
             ),
             child: Icon(icon, color: color, size: 24),
           ),
-          const SizedBox(height: 16),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: CaregiverColors.dark,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.grey.shade600,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            trend,
-            style: TextStyle(
-              fontSize: 12,
-              color: color,
-              fontWeight: FontWeight.w600,
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: CaregiverColors.dark,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -176,11 +267,7 @@ class DashboardPage extends StatelessWidget {
   }
 
   Widget _buildRecentBookings() {
-    final bookings = [
-      {'client': 'John Smith', 'time': '10:00 AM', 'status': 'Completed'},
-      {'client': 'Mary Johnson', 'time': '2:00 PM', 'status': 'Upcoming'},
-      {'client': 'Robert Williams', 'time': '4:30 PM', 'status': 'Upcoming'},
-    ];
+    final recentBookings = _allBookings.take(5).toList();
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -188,6 +275,13 @@ class DashboardPage extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.shade100,
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -210,30 +304,50 @@ class DashboardPage extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          ...bookings.map((booking) {
-            return Column(
-              children: [
-                _buildBookingItem(
-                  booking['client']!,
-                  booking['time']!,
-                  booking['status']!,
+          if (recentBookings.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(Icons.inbox_outlined,
+                        size: 48, color: Colors.grey.shade300),
+                    const SizedBox(height: 8),
+                    Text(
+                      'No bookings yet',
+                      style: TextStyle(color: Colors.grey.shade500),
+                    ),
+                  ],
                 ),
-                if (booking != bookings.last)
-                  Divider(color: Colors.grey.shade200, height: 24),
-              ],
-            );
-          }),
+              ),
+            )
+          else
+            ...recentBookings.asMap().entries.map((entry) {
+              final index = entry.key;
+              final booking = entry.value;
+              return Column(
+                children: [
+                  _buildBookingItem(booking),
+                  if (index != recentBookings.length - 1)
+                    Divider(color: Colors.grey.shade200, height: 24),
+                ],
+              );
+            }),
         ],
       ),
     );
   }
 
-  Widget _buildBookingItem(String client, String time, String status) {
+  Widget _buildBookingItem(BookingModel booking) {
+    final statusColor = _getStatusColor(booking.status);
+    
     return Row(
       children: [
         Icon(
-          status == 'Completed' ? Icons.check_circle : Icons.schedule,
-          color: CaregiverColors.getStatusColor(status),
+          booking.status == BookingStatus.completed
+              ? Icons.check_circle
+              : Icons.schedule,
+          color: statusColor,
           size: 20,
         ),
         const SizedBox(width: 12),
@@ -242,15 +356,16 @@ class DashboardPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                client,
+                booking.clientName,
                 style: const TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 14,
                   color: CaregiverColors.dark,
                 ),
               ),
+              const SizedBox(height: 2),
               Text(
-                time,
+                '${DateFormat('MMM dd, yyyy').format(booking.startDate)} • ${booking.startTime}',
                 style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
               ),
             ],
@@ -259,14 +374,14 @@ class DashboardPage extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           decoration: BoxDecoration(
-            color: CaregiverColors.getStatusColor(status).withOpacity(0.1),
+            color: statusColor.withOpacity(0.1),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
-            status,
+            _getStatusText(booking.status),
             style: TextStyle(
               fontSize: 11,
-              color: CaregiverColors.getStatusColor(status),
+              color: statusColor,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -282,6 +397,13 @@ class DashboardPage extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.shade100,
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -321,47 +443,126 @@ class DashboardPage extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '2 Appointments',
-                        style: TextStyle(
+                        '${_todayBookings.length} ${_todayBookings.length == 1 ? 'Appointment' : 'Appointments'}',
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                           color: CaregiverColors.dark,
                         ),
                       ),
-                      SizedBox(height: 4),
-                      Text(
-                        'Next: 10:00 AM',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey,
+                      if (_todayBookings.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          'Next: ${_todayBookings.first.startTime}',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey,
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {},
-              style: ElevatedButton.styleFrom(
-                backgroundColor: CaregiverColors.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-              ),
-              child: const Text('View Schedule'),
-            ),
-          ),
+          if (_todayBookings.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            ..._todayBookings.map((booking) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade200),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 4,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: _getStatusColor(booking.status),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                booking.clientName,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${booking.startTime} - ${booking.endTime}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )),
+          ],
         ],
       ),
     );
+  }
+
+  Color _getStatusColor(BookingStatus status) {
+    switch (status) {
+      case BookingStatus.pending:
+      case BookingStatus.pendingPayment:
+      case BookingStatus.pendingReschedule:
+        return CaregiverColors.warning;
+      case BookingStatus.confirmed:
+        return CaregiverColors.secondary;
+      case BookingStatus.inProgress:
+        return CaregiverColors.primary;
+      case BookingStatus.completed:
+        return CaregiverColors.secondary;
+      default:
+        return CaregiverColors.danger;
+    }
+  }
+
+  String _getStatusText(BookingStatus status) {
+    switch (status) {
+      case BookingStatus.pending:
+        return 'Pending';
+      case BookingStatus.pendingPayment:
+        return 'Awaiting Payment';
+      case BookingStatus.pendingReschedule:
+        return 'Reschedule Requested';
+      case BookingStatus.confirmed:
+        return 'Confirmed';
+      case BookingStatus.inProgress:
+        return 'In Progress';
+      case BookingStatus.completed:
+        return 'Completed';
+      case BookingStatus.cancelled:
+        return 'Cancelled';
+      case BookingStatus.rejected:
+        return 'Rejected';
+      case BookingStatus.disputed:
+        return 'Disputed';
+      case BookingStatus.resolved:
+        return 'Resolved';
+    }
   }
 }

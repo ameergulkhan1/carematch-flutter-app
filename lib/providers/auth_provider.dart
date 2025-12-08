@@ -82,6 +82,7 @@ class AuthProvider with ChangeNotifier {
 
   // Send OTP
   Future<bool> sendOTP(String email, String name) async {
+    print('🔵 AuthProvider.sendOTP called for: $email');
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
@@ -91,6 +92,9 @@ class AuthProvider with ChangeNotifier {
     _isLoading = false;
     if (!success) {
       _errorMessage = 'Failed to send OTP. Please try again.';
+      print('🔴 AuthProvider.sendOTP failed');
+    } else {
+      print('🟢 AuthProvider.sendOTP succeeded');
     }
     notifyListeners();
     return success;

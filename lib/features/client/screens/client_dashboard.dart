@@ -4,7 +4,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_text_styles.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../providers/auth_provider.dart';
-import '../../../services/booking_service.dart';
+import '../../../services/enhanced_booking_service.dart';
 import '../../../services/caregiver_search_service.dart';
 import '../../../models/booking_model.dart';
 import '../../../models/caregiver_user_model.dart';
@@ -20,7 +20,7 @@ class ClientDashboard extends StatefulWidget {
 }
 
 class _ClientDashboardState extends State<ClientDashboard> {
-  final BookingService _bookingService = BookingService();
+  final EnhancedBookingService _bookingService = EnhancedBookingService();
   final CaregiverSearchService _searchService = CaregiverSearchService();
   
   int _activeBookings = 0;
@@ -111,8 +111,8 @@ class _ClientDashboardState extends State<ClientDashboard> {
                   backgroundColor: AppColors.primary.withOpacity(0.1),
                   child: const Icon(Icons.person, color: AppColors.primary),
                 ),
-                itemBuilder: (context) => const [
-                  PopupMenuItem(
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
                     value: 'profile',
                     child: Row(
                       children: [
@@ -122,7 +122,7 @@ class _ClientDashboardState extends State<ClientDashboard> {
                       ],
                     ),
                   ),
-                  PopupMenuItem(
+                  const PopupMenuItem(
                     value: 'settings',
                     child: Row(
                       children: [
@@ -132,8 +132,29 @@ class _ClientDashboardState extends State<ClientDashboard> {
                       ],
                     ),
                   ),
-                  PopupMenuDivider(),
-                  PopupMenuItem(
+                  const PopupMenuDivider(),
+                  const PopupMenuItem(
+                    value: 'admin_dashboard',
+                    child: Row(
+                      children: [
+                        Icon(Icons.admin_panel_settings, size: 20, color: AppColors.primary),
+                        SizedBox(width: 12),
+                        Text('Admin Dashboard', style: TextStyle(color: AppColors.primary)),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'caregiver_dashboard',
+                    child: Row(
+                      children: [
+                        Icon(Icons.medical_services, size: 20, color: AppColors.secondary),
+                        SizedBox(width: 12),
+                        Text('Caregiver Dashboard', style: TextStyle(color: AppColors.secondary)),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuDivider(),
+                  const PopupMenuItem(
                     value: 'logout',
                     child: Row(
                       children: [
@@ -149,6 +170,14 @@ class _ClientDashboardState extends State<ClientDashboard> {
                     await authProvider.signOut();
                     if (context.mounted) {
                       Navigator.pushReplacementNamed(context, AppRoutes.landing);
+                    }
+                  } else if (value == 'admin_dashboard') {
+                    if (context.mounted) {
+                      Navigator.pushReplacementNamed(context, '/admin/dashboard');
+                    }
+                  } else if (value == 'caregiver_dashboard') {
+                    if (context.mounted) {
+                      Navigator.pushReplacementNamed(context, AppRoutes.caregiverDashboard);
                     }
                   }
                 },
@@ -277,7 +306,7 @@ class _ClientDashboardState extends State<ClientDashboard> {
                           icon: Icons.message_outlined,
                           title: 'Messages',
                           description: 'Chat with caregivers',
-                          onTap: () {},
+                          onTap: () => Navigator.pushNamed(context, AppRoutes.clientChat),
                         ),
                       ],
                     ),
@@ -646,6 +675,8 @@ class _ClientDashboardState extends State<ClientDashboard> {
       case BookingStatus.confirmed:
         return AppColors.success;
       case BookingStatus.pending:
+      case BookingStatus.pendingPayment:
+      case BookingStatus.pendingReschedule:
         return AppColors.warning;
       case BookingStatus.inProgress:
         return AppColors.info;
@@ -653,6 +684,8 @@ class _ClientDashboardState extends State<ClientDashboard> {
         return AppColors.success;
       case BookingStatus.cancelled:
       case BookingStatus.rejected:
+      case BookingStatus.disputed:
+      case BookingStatus.resolved:
         return AppColors.error;
     }
   }
@@ -661,6 +694,10 @@ class _ClientDashboardState extends State<ClientDashboard> {
     switch (status) {
       case BookingStatus.pending:
         return 'Pending';
+      case BookingStatus.pendingPayment:
+        return 'Awaiting Payment';
+      case BookingStatus.pendingReschedule:
+        return 'Reschedule Requested';
       case BookingStatus.confirmed:
         return 'Confirmed';
       case BookingStatus.inProgress:
@@ -671,6 +708,10 @@ class _ClientDashboardState extends State<ClientDashboard> {
         return 'Cancelled';
       case BookingStatus.rejected:
         return 'Rejected';
+      case BookingStatus.disputed:
+        return 'Disputed';
+      case BookingStatus.resolved:
+        return 'Resolved';
     }
   }
 }

@@ -5,6 +5,8 @@ class ClientUser {
   final String email;
   final String fullName;
   final String phoneNumber;
+  final String? phoneCountryCode; // e.g., 'US', 'GB', 'IN'
+  final String? phoneDialCode;    // e.g., '+1', '+44', '+91'
   final String? address;
   final String? city;
   final String? state;
@@ -19,6 +21,8 @@ class ClientUser {
     required this.email,
     required this.fullName,
     required this.phoneNumber,
+    this.phoneCountryCode,
+    this.phoneDialCode,
     this.address,
     this.city,
     this.state,
@@ -36,6 +40,8 @@ class ClientUser {
       'email': email,
       'fullName': fullName,
       'phoneNumber': phoneNumber,
+      'phoneCountryCode': phoneCountryCode,
+      'phoneDialCode': phoneDialCode,
       'address': address,
       'city': city,
       'state': state,
@@ -56,6 +62,8 @@ class ClientUser {
       email: data['email'] ?? '',
       fullName: data['fullName'] ?? '',
       phoneNumber: data['phoneNumber'] ?? '',
+      phoneCountryCode: data['phoneCountryCode'],
+      phoneDialCode: data['phoneDialCode'],
       address: data['address'],
       city: data['city'],
       state: data['state'],
@@ -84,6 +92,8 @@ class ClientUser {
     String? email,
     String? fullName,
     String? phoneNumber,
+    String? phoneCountryCode,
+    String? phoneDialCode,
     String? address,
     String? city,
     String? state,
@@ -98,6 +108,8 @@ class ClientUser {
       email: email ?? this.email,
       fullName: fullName ?? this.fullName,
       phoneNumber: phoneNumber ?? this.phoneNumber,
+      phoneCountryCode: phoneCountryCode ?? this.phoneCountryCode,
+      phoneDialCode: phoneDialCode ?? this.phoneDialCode,
       address: address ?? this.address,
       city: city ?? this.city,
       state: state ?? this.state,

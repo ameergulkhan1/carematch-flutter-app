@@ -74,6 +74,8 @@ class _ClientSignUpStep3State extends State<ClientSignUpStep3> {
   }
 
   Future<void> _sendOTP() async {
+    print('🟡 ClientSignupStep3._sendOTP called for email: ${widget.email}, name: ${widget.fullName}');
+    
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     
     setState(() {
@@ -87,16 +89,24 @@ class _ClientSignUpStep3State extends State<ClientSignUpStep3> {
     });
 
     if (success) {
+      print('✅ ClientSignupStep3: OTP sent successfully');
       _startCountdown();
       if (mounted) {
+        // Show different message based on EmailJS configuration
+        final message = AppConfig.emailJsPublicKey.isEmpty
+            ? 'Verification code generated! Check the console/terminal for the code.'
+            : 'Verification code sent to your email';
+        
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Verification code sent to your email'),
+          SnackBar(
+            content: Text(message),
             backgroundColor: AppColors.success,
+            duration: const Duration(seconds: 4),
           ),
         );
       }
     } else {
+      print('❌ ClientSignupStep3: OTP sending failed');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

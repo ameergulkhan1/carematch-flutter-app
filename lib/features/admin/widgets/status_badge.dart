@@ -5,9 +5,9 @@ class StatusBadge extends StatelessWidget {
   final String status;
 
   const StatusBadge({
-    Key? key,
+    super.key,
     required this.status,
-  }) : super(key: key);
+  });
 
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {

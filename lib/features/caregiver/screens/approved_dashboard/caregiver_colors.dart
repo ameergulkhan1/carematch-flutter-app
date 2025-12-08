@@ -8,7 +8,8 @@ class CaregiverColors {
   
   // Status Colors
   static const Color warning = Color(0xFFF59E0B); // Amber
-  static const Color danger = Color(0xEF4444); // Red
+  static const Color danger = Color(0xFFEF4444); // Red
+  static const Color success = Color(0xFF10B981); // Green
   
   // UI Colors
   static const Color sidebarBg = Color(0xFF1E293B); // Dark Blue Gray

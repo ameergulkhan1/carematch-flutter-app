@@ -6,6 +6,8 @@ class CaregiverUser {
   final String email;
   final String fullName;
   final String phoneNumber;
+  final String? phoneCountryCode; // e.g., 'US', 'GB', 'IN'
+  final String? phoneDialCode;    // e.g., '+1', '+44', '+91'
   final DateTime dateOfBirth;
   final String address;
   final String city;
@@ -17,6 +19,9 @@ class CaregiverUser {
   final List<String> specializations;
   final String? bio;
   final List<String> certifications;
+  
+  // Availability Schedule
+  final Map<String, dynamic>? availability; // {day: {enabled: bool, hours: string}}
   
   // Verification Status
   final String verificationStatus; // 'pending', 'approved', 'rejected'
@@ -38,6 +43,8 @@ class CaregiverUser {
     required this.email,
     required this.fullName,
     required this.phoneNumber,
+    this.phoneCountryCode,
+    this.phoneDialCode,
     required this.dateOfBirth,
     required this.address,
     required this.city,
@@ -47,6 +54,7 @@ class CaregiverUser {
     this.specializations = const [],
     this.bio,
     this.certifications = const [],
+    this.availability,
     this.verificationStatus = 'pending',
     this.isEmailVerified = false,
     this.documentsSubmitted = false,
@@ -64,6 +72,8 @@ class CaregiverUser {
       'email': email,
       'fullName': fullName,
       'phoneNumber': phoneNumber,
+      'phoneCountryCode': phoneCountryCode,
+      'phoneDialCode': phoneDialCode,
       'dateOfBirth': Timestamp.fromDate(dateOfBirth),
       'address': address,
       'city': city,
@@ -73,6 +83,7 @@ class CaregiverUser {
       'specializations': specializations,
       'bio': bio,
       'certifications': certifications,
+      'availability': availability,
       'verificationStatus': verificationStatus,
       'isEmailVerified': isEmailVerified,
       'documentsSubmitted': documentsSubmitted,
@@ -92,6 +103,8 @@ class CaregiverUser {
       email: data['email'] ?? '',
       fullName: data['fullName'] ?? '',
       phoneNumber: data['phoneNumber'] ?? '',
+      phoneCountryCode: data['phoneCountryCode'],
+      phoneDialCode: data['phoneDialCode'],
       dateOfBirth: (data['dateOfBirth'] as Timestamp).toDate(),
       address: data['address'] ?? '',
       city: data['city'] ?? '',
@@ -101,6 +114,7 @@ class CaregiverUser {
       specializations: List<String>.from(data['specializations'] ?? []),
       bio: data['bio'],
       certifications: List<String>.from(data['certifications'] ?? []),
+      availability: data['availability'] as Map<String, dynamic>?,
       verificationStatus: data['verificationStatus'] ?? 'pending',
       isEmailVerified: data['isEmailVerified'] ?? false,
       documentsSubmitted: data['documentsSubmitted'] ?? false,
@@ -118,6 +132,8 @@ class CaregiverUser {
     String? email,
     String? fullName,
     String? phoneNumber,
+    String? phoneCountryCode,
+    String? phoneDialCode,
     DateTime? dateOfBirth,
     String? address,
     String? city,
@@ -127,6 +143,7 @@ class CaregiverUser {
     List<String>? specializations,
     String? bio,
     List<String>? certifications,
+    Map<String, dynamic>? availability,
     String? verificationStatus,
     bool? isEmailVerified,
     bool? documentsSubmitted,
@@ -141,6 +158,8 @@ class CaregiverUser {
       email: email ?? this.email,
       fullName: fullName ?? this.fullName,
       phoneNumber: phoneNumber ?? this.phoneNumber,
+      phoneCountryCode: phoneCountryCode ?? this.phoneCountryCode,
+      phoneDialCode: phoneDialCode ?? this.phoneDialCode,
       dateOfBirth: dateOfBirth ?? this.dateOfBirth,
       address: address ?? this.address,
       city: city ?? this.city,
@@ -150,6 +169,7 @@ class CaregiverUser {
       specializations: specializations ?? this.specializations,
       bio: bio ?? this.bio,
       certifications: certifications ?? this.certifications,
+      availability: availability ?? this.availability,
       verificationStatus: verificationStatus ?? this.verificationStatus,
       isEmailVerified: isEmailVerified ?? this.isEmailVerified,
       documentsSubmitted: documentsSubmitted ?? this.documentsSubmitted,

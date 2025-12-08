@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../admin_colors.dart';
 import '../../../services/admin_auth_service.dart';
 import '../../../admin_routes.dart';
+import '../../../../../services/notification_service.dart';
+import '../../../../../features/shared/widgets/notification_panel.dart';
+import '../../../../../core/routes/app_routes.dart';
 
 class AdminTopBarNew extends StatelessWidget {
   final String title;
@@ -9,11 +13,11 @@ class AdminTopBarNew extends StatelessWidget {
   final VoidCallback? onRefresh;
 
   const AdminTopBarNew({
-    Key? key,
+    super.key,
     required this.title,
     this.showSearch = false,
     this.onRefresh,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -87,29 +91,68 @@ class AdminTopBarNew extends StatelessWidget {
             ],
 
             // Notifications
-            Stack(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.notifications_outlined),
-                  tooltip: 'Notifications',
-                  onPressed: () {
-                    // TODO: Show notifications
-                  },
-                  color: Colors.grey[700],
-                ),
-                Positioned(
-                  right: 8,
-                  top: 8,
-                  child: Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.circle,
+            StreamBuilder<int>(
+              stream: NotificationService().getUnreadCount(
+                FirebaseAuth.instance.currentUser?.uid ?? '',
+              ),
+              builder: (context, snapshot) {
+                final unreadCount = snapshot.data ?? 0;
+                return Stack(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.notifications_outlined),
+                      tooltip: 'Notifications',
+                      onPressed: () {
+                        showGeneralDialog(
+                          context: context,
+                          barrierDismissible: true,
+                          barrierLabel: 'Notifications',
+                          barrierColor: Colors.black54,
+                          transitionDuration: const Duration(milliseconds: 300),
+                          pageBuilder: (context, animation, secondaryAnimation) {
+                            return Align(
+                              alignment: Alignment.centerRight,
+                              child: SlideTransition(
+                                position: Tween<Offset>(
+                                  begin: const Offset(1, 0),
+                                  end: Offset.zero,
+                                ).animate(animation),
+                                child: const NotificationPanel(),
+                              ),
+                            );
+                          },
+                        );
+                      },
+                      color: Colors.grey[700],
                     ),
-                  ),
-                ),
-              ],
+                    if (unreadCount > 0)
+                      Positioned(
+                        right: 8,
+                        top: 8,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 16,
+                            minHeight: 16,
+                          ),
+                          child: Text(
+                            unreadCount > 9 ? '9+' : '$unreadCount',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              },
             ),
 
             const SizedBox(width: 8),
@@ -199,6 +242,32 @@ class AdminTopBarNew extends StatelessWidget {
                         enabled: false,
                         child: Divider(height: 1),
                       ),
+                      // Dashboard switching options
+                      const PopupMenuItem(
+                        value: 'client_dashboard',
+                        child: Row(
+                          children: [
+                            Icon(Icons.home, color: AdminColors.primary, size: 20),
+                            SizedBox(width: 12),
+                            Text('Client Dashboard', style: TextStyle(color: AdminColors.primary)),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'caregiver_dashboard',
+                        child: Row(
+                          children: [
+                            Icon(Icons.medical_services, color: AdminColors.secondary, size: 20),
+                            SizedBox(width: 12),
+                            Text('Caregiver Dashboard', style: TextStyle(color: AdminColors.secondary)),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        height: 1,
+                        enabled: false,
+                        child: Divider(height: 1),
+                      ),
                       const PopupMenuItem(
                         value: 'logout',
                         child: Row(
@@ -225,6 +294,16 @@ class AdminTopBarNew extends StatelessWidget {
     switch (action) {
       case 'profile':
         // TODO: Navigate to profile
+        break;
+      case 'client_dashboard':
+        if (context.mounted) {
+          Navigator.pushReplacementNamed(context, AppRoutes.clientDashboard);
+        }
+        break;
+      case 'caregiver_dashboard':
+        if (context.mounted) {
+          Navigator.pushReplacementNamed(context, AppRoutes.caregiverDashboard);
+        }
         break;
       case 'settings':
         Navigator.of(context).pushNamed(AdminRoutes.adminSettings);

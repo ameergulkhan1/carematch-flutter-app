@@ -44,11 +44,11 @@ class _AdminCaregiversScreenState extends State<AdminCaregiversScreen> {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
+                  const Row(
                     children: [
-                      const Icon(Icons.filter_list),
-                      const SizedBox(width: 12),
-                      const Expanded(
+                      Icon(Icons.filter_list),
+                      SizedBox(width: 12),
+                      Expanded(
                         child: Text(
                           'Filter by Status:',
                           style: TextStyle(fontWeight: FontWeight.w600),
