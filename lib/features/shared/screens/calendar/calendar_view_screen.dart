@@ -25,7 +25,6 @@ class _CalendarViewScreenState extends State<CalendarViewScreen> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
 
-  List<BookingModel> _allBookings = [];
   Map<DateTime, List<BookingModel>> _bookingsByDate = {};
   bool _isLoading = true;
 
@@ -48,7 +47,6 @@ class _CalendarViewScreenState extends State<CalendarViewScreen> {
 
         bookingsStream.listen((bookings) {
           setState(() {
-            _allBookings = bookings;
             _bookingsByDate = _groupBookingsByDate(bookings);
             _isLoading = false;
           });
@@ -169,7 +167,7 @@ class _CalendarViewScreenState extends State<CalendarViewScreen> {
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   child: Row(
                     children: [
-                      Icon(Icons.event, color: AppColors.primary, size: 20),
+                      const Icon(Icons.event, color: AppColors.primary, size: 20),
                       const SizedBox(width: 8),
                       Text(
                         _selectedDay != null
@@ -275,7 +273,7 @@ class _CalendarViewScreenState extends State<CalendarViewScreen> {
                         Text(
                           widget.isCaregiver
                               ? booking.clientName
-                              : booking.caregiverName ?? 'Caregiver',
+                              : booking.caregiverName,
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -394,9 +392,9 @@ class _CalendarViewScreenState extends State<CalendarViewScreen> {
                   const SizedBox(height: 24),
 
                   // Title
-                  Text(
+                  const Text(
                     'Booking Details',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                     ),

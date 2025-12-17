@@ -1,0 +1,147 @@
+{
+  "@@locale": "en",
+  "appTitle": "CareMatch",
+  "@appTitle": {
+    "description": "The title of the application"
+  },
+  "welcome": "Welcome to CareMatch",
+  "@welcome": {
+    "description": "Welcome message"
+  },
+  "signIn": "Sign In",
+  "@signIn": {
+    "description": "Sign in button"
+  },
+  "signUp": "Sign Up",
+  "@signUp": {
+    "description": "Sign up button"
+  },
+  "email": "Email",
+  "@email": {
+    "description": "Email label"
+  },
+  "password": "Password",
+  "@password": {
+    "description": "Password label"
+  },
+  "forgotPassword": "Forgot Password?",
+  "@forgotPassword": {
+    "description": "Forgot password link"
+  },
+  "createAccount": "Create Account",
+  "@createAccount": {
+    "description": "Create account button"
+  },
+  "fullName": "Full Name",
+  "@fullName": {
+    "description": "Full name label"
+  },
+  "phoneNumber": "Phone Number",
+  "@phoneNumber": {
+    "description": "Phone number label"
+  },
+  "address": "Address",
+  "@address": {
+    "description": "Address label"
+  },
+  "bookNow": "Book Now",
+  "@bookNow": {
+    "description": "Book now button"
+  },
+  "myBookings": "My Bookings",
+  "@myBookings": {
+    "description": "My bookings title"
+  },
+  "profile": "Profile",
+  "@profile": {
+    "description": "Profile title"
+  },
+  "settings": "Settings",
+  "@settings": {
+    "description": "Settings title"
+  },
+  "logout": "Logout",
+  "@logout": {
+    "description": "Logout button"
+  },
+  "cancel": "Cancel",
+  "@cancel": {
+    "description": "Cancel button"
+  },
+  "confirm": "Confirm",
+  "@confirm": {
+    "description": "Confirm button"
+  },
+  "save": "Save",
+  "@save": {
+    "description": "Save button"
+  },
+  "delete": "Delete",
+  "@delete": {
+    "description": "Delete button"
+  },
+  "edit": "Edit",
+  "@edit": {
+    "description": "Edit button"
+  },
+  "search": "Search",
+  "@search": {
+    "description": "Search label"
+  },
+  "filter": "Filter",
+  "@filter": {
+    "description": "Filter button"
+  },
+  "noDataFound": "No data found",
+  "@noDataFound": {
+    "description": "No data found message"
+  },
+  "errorOccurred": "An error occurred",
+  "@errorOccurred": {
+    "description": "Error message"
+  },
+  "tryAgain": "Try Again",
+  "@tryAgain": {
+    "description": "Try again button"
+  },
+  "loading": "Loading...",
+  "@loading": {
+    "description": "Loading message"
+  },
+  "success": "Success",
+  "@success": {
+    "description": "Success message"
+  },
+  "bookingConfirmed": "Booking Confirmed",
+  "@bookingConfirmed": {
+    "description": "Booking confirmed message"
+  },
+  "bookingCancelled": "Booking Cancelled",
+  "@bookingCancelled": {
+    "description": "Booking cancelled message"
+  },
+  "selectDate": "Select Date",
+  "@selectDate": {
+    "description": "Select date label"
+  },
+  "selectTime": "Select Time",
+  "@selectTime": {
+    "description": "Select time label"
+  },
+  "caregiverNotAvailable": "Caregiver not available",
+  "@caregiverNotAvailable": {
+    "description": "Caregiver not available message"
+  },
+  "invalidEmail": "Invalid email address",
+  "@invalidEmail": {
+    "description": "Invalid email error"
+  },
+  "passwordTooShort": "Password must be at least 6 characters",
+  "@passwordTooShort": {
+    "description": "Password too short error"
+  },
+  "fieldRequired": "This field is required",
+  "@fieldRequired": {
+    "description": "Required field error"
+  }
+}

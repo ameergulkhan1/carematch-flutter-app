@@ -1,17 +1,10 @@
-import 'dart:math';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import '../core/constants/app_config.dart';
 import '../models/client_user_model.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-
-  // Store OTPs temporarily (in production, use a more secure method)
-  final Map<String, Map<String, dynamic>> _otpStore = {};
 
   // Get current user
   User? get currentUser => _auth.currentUser;
@@ -19,135 +12,70 @@ class AuthService {
   // Auth state stream
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
-  // Generate OTP
-  String _generateOTP() {
-    final random = Random();
-    return List.generate(AppConfig.otpLength, (_) => random.nextInt(10)).join();
-  }
-
-  // Send OTP via Email (using Firebase or custom method)
-  Future<bool> sendOTPEmail(String email, String name) async {
+  // Send email verification link (replaces OTP system)
+  Future<bool> sendEmailVerification() async {
     try {
-      print('🔄 Starting OTP generation for: $email');
-      final otp = _generateOTP();
-      print('✓ OTP generated: $otp');
-      final expiryTime = DateTime.now().add(const Duration(minutes: AppConfig.otpExpiryMinutes));
-
-      // Store OTP in memory
-      _otpStore[email] = {
-        'otp': otp,
-        'expiry': expiryTime,
-      };
-      print('✓ OTP stored in memory');
-
-      // Also store in Firestore for persistence
-      try {
-        await _firestore.collection('otp_codes').doc(email).set({
-          'otp': otp,
-          'expiryTime': Timestamp.fromDate(expiryTime),
-          'createdAt': Timestamp.now(),
-        });
-        print('✓ OTP stored in Firestore');
-      } catch (firestoreError) {
-        print('⚠️ Firestore storage failed (continuing anyway): $firestoreError');
+      final user = _auth.currentUser;
+      if (user == null) {
+        print('❌ No user logged in');
+        return false;
       }
 
-      // Send OTP via EmailJS if configured
-      if (AppConfig.emailJsPublicKey.isNotEmpty) {
-        print('📤 Attempting to send email via EmailJS...');
-        try {
-          final url = Uri.parse('https://api.emailjs.com/api/v1.0/email/send');
-          final response = await http.post(
-            url,
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: jsonEncode({
-              'service_id': AppConfig.emailJsServiceId,
-              'template_id': AppConfig.emailJsTemplateId,
-              'user_id': AppConfig.emailJsPublicKey,
-              'template_params': {
-                'to_email': email,
-                'to_name': name,
-                'otp_code': otp,
-                'expiry_minutes': AppConfig.otpExpiryMinutes.toString(),
-                'app_name': AppConfig.appName,
-              },
-            }),
-          );
-
-          if (response.statusCode == 200) {
-            print('✓ OTP email sent successfully to $email');
-          } else {
-            print('✗ EmailJS error: ${response.statusCode} - ${response.body}');
-          }
-        } catch (emailError) {
-          print('✗ Email sending failed: $emailError');
-        }
-      } else {
-        print('ℹ️ EmailJS not configured - email will not be sent');
+      if (user.emailVerified) {
+        print('ℹ️ Email already verified');
+        return true;
       }
-      
-      // Always print to console for development/testing
-      print('═══════════════════════════════════════');
-      print('📧 OTP for $email');
-      print('👤 Name: $name');
-      print('🔐 Code: $otp');
-      print('⏰ Valid for ${AppConfig.otpExpiryMinutes} minutes');
-      print('═══════════════════════════════════════');
 
+      await user.sendEmailVerification();
+      print('✅ Verification email sent to ${user.email}');
       return true;
     } catch (e) {
-      print('❌ Error sending OTP: $e');
-      print('Stack trace: ${StackTrace.current}');
+      print('❌ Error sending verification email: $e');
       return false;
     }
   }
 
-  // Verify OTP
-  Future<bool> verifyOTP(String email, String enteredOTP) async {
+  // Check if current user's email is verified
+  Future<bool> checkEmailVerified() async {
     try {
-      // First check memory store
-      if (_otpStore.containsKey(email)) {
-        final otpData = _otpStore[email]!;
-        final storedOTP = otpData['otp'] as String;
-        final expiryTime = otpData['expiry'] as DateTime;
+      final user = _auth.currentUser;
+      if (user == null) return false;
 
-        if (DateTime.now().isAfter(expiryTime)) {
-          _otpStore.remove(email);
-          await _firestore.collection('otp_codes').doc(email).delete();
-          return false;
-        }
-
-        if (storedOTP == enteredOTP) {
-          _otpStore.remove(email);
-          await _firestore.collection('otp_codes').doc(email).delete();
-          return true;
-        }
-      }
-
-      // Fallback: check Firestore
-      final otpDoc = await _firestore.collection('otp_codes').doc(email).get();
-      if (otpDoc.exists) {
-        final data = otpDoc.data()!;
-        final storedOTP = data['otp'] as String;
-        final expiryTime = (data['expiryTime'] as Timestamp).toDate();
-
-        if (DateTime.now().isAfter(expiryTime)) {
-          await _firestore.collection('otp_codes').doc(email).delete();
-          return false;
-        }
-
-        if (storedOTP == enteredOTP) {
-          await _firestore.collection('otp_codes').doc(email).delete();
-          return true;
-        }
-      }
-
-      return false;
+      await user.reload();
+      return _auth.currentUser?.emailVerified ?? false;
     } catch (e) {
-      print('Error verifying OTP: $e');
+      print('❌ Error checking email verification: $e');
       return false;
+    }
+  }
+
+  // Mark email as verified in Firestore (called after Firebase verification)
+  Future<void> markEmailAsVerified(String uid) async {
+    try {
+      // Update in users collection
+      await _firestore.collection('users').doc(uid).update({
+        'isEmailVerified': true,
+      });
+
+      // Also try clients and caregivers collections
+      final clientDoc = await _firestore.collection('clients').doc(uid).get();
+      if (clientDoc.exists) {
+        await _firestore.collection('clients').doc(uid).update({
+          'isEmailVerified': true,
+        });
+      }
+
+      final caregiverDoc =
+          await _firestore.collection('caregivers').doc(uid).get();
+      if (caregiverDoc.exists) {
+        await _firestore.collection('caregivers').doc(uid).update({
+          'isEmailVerified': true,
+        });
+      }
+
+      print('✅ Email verification status updated in Firestore');
+    } catch (e) {
+      print('❌ Error updating verification status: $e');
     }
   }
 
@@ -160,7 +88,7 @@ class AuthService {
           .where('email', isEqualTo: email)
           .limit(1)
           .get();
-      
+
       if (querySnapshot.docs.isNotEmpty) {
         final userData = querySnapshot.docs.first.data();
         return userData['role'] as String?;
@@ -189,7 +117,8 @@ class AuthService {
       if (existingRole != null && existingRole != 'client') {
         return {
           'success': false,
-          'message': 'This email is already registered as a $existingRole. Please use a different email or login as $existingRole.'
+          'message':
+              'This email is already registered as a $existingRole. Please use a different email or login as $existingRole.'
         };
       }
 
@@ -219,7 +148,14 @@ class AuthService {
       );
 
       // Save to Firestore
-      await _firestore.collection('users').doc(user.uid).set(clientUser.toFirestore());
+      await _firestore
+          .collection('users')
+          .doc(user.uid)
+          .set(clientUser.toFirestore());
+
+      // Send verification email automatically
+      await user.sendEmailVerification();
+      print('✅ Verification email sent to $email');
 
       return {'success': true, 'uid': user.uid};
     } on FirebaseAuthException catch (e) {
@@ -236,7 +172,7 @@ class AuthService {
   }) async {
     try {
       print('🔐 Attempting login for email: $email');
-      
+
       final userCredential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
@@ -281,18 +217,6 @@ class AuthService {
     }
   }
 
-  // Update email verification status
-  Future<void> markEmailAsVerified(String uid) async {
-    try {
-      await _firestore.collection('users').doc(uid).update({
-        'isEmailVerified': true,
-        'updatedAt': Timestamp.now(),
-      });
-    } catch (e) {
-      print('Error updating email verification: $e');
-    }
-  }
-
   // Get client user data
   Future<ClientUser?> getClientUser(String uid) async {
     try {
@@ -308,7 +232,8 @@ class AuthService {
   }
 
   // Update client profile
-  Future<bool> updateClientProfile(String uid, Map<String, dynamic> updates) async {
+  Future<bool> updateClientProfile(
+      String uid, Map<String, dynamic> updates) async {
     try {
       updates['updatedAt'] = Timestamp.now();
       await _firestore.collection('users').doc(uid).update(updates);
@@ -319,14 +244,23 @@ class AuthService {
     }
   }
 
-  // Send password reset email
+  // Send password reset email (using Firebase's native method)
   Future<Map<String, dynamic>> sendPasswordResetEmail(String email) async {
     try {
+      print('🔄 AuthService: Sending password reset email to: $email');
+
       await _auth.sendPasswordResetEmail(email: email);
-      return {'success': true, 'message': 'Password reset email sent'};
+
+      print('✅ Password reset email sent successfully');
+      return {
+        'success': true,
+        'message': 'Password reset link sent to your email'
+      };
     } on FirebaseAuthException catch (e) {
+      print('❌ Firebase error: ${e.code}');
       return {'success': false, 'message': _getFirebaseErrorMessage(e.code)};
     } catch (e) {
+      print('❌ Error sending reset email: $e');
       return {'success': false, 'message': 'Failed to send reset email'};
     }
   }

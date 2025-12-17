@@ -104,6 +104,9 @@ class BookingModel {
   
   // Post-Service (Stage 10)
   final String? clientApprovalStatus; // 'approved', 'disputed', 'pending'
+  final int? rating; // 1-5 star rating
+  final String? review; // Written review/feedback
+  final DateTime? ratedAt; // When rating was submitted
   
   // Payout (Stage 11)
   final bool payoutReleased;
@@ -173,6 +176,9 @@ class BookingModel {
     this.sessionPhotos = const [],
     this.sessionNotes,
     this.clientApprovalStatus,
+    this.rating,
+    this.review,
+    this.ratedAt,
     this.payoutReleased = false,
     this.walletTransactionId,
     this.payoutReleasedAt,
@@ -238,6 +244,9 @@ class BookingModel {
       'sessionPhotos': sessionPhotos,
       'sessionNotes': sessionNotes,
       'clientApprovalStatus': clientApprovalStatus,
+      'rating': rating,
+      'review': review,
+      'ratedAt': ratedAt?.toIso8601String(),
       'payoutReleased': payoutReleased,
       'walletTransactionId': walletTransactionId,
       'payoutReleasedAt': payoutReleasedAt != null ? Timestamp.fromDate(payoutReleasedAt!) : null,
@@ -305,6 +314,13 @@ class BookingModel {
       sessionPhotos: List<String>.from(map['sessionPhotos'] ?? []),
       sessionNotes: map['sessionNotes'],
       clientApprovalStatus: map['clientApprovalStatus'],
+      rating: map['rating'],
+      review: map['review'],
+      ratedAt: map['ratedAt'] != null
+          ? (map['ratedAt'] is Timestamp
+              ? (map['ratedAt'] as Timestamp).toDate()
+              : DateTime.parse(map['ratedAt']))
+          : null,
       payoutReleased: map['payoutReleased'] ?? false,
       walletTransactionId: map['walletTransactionId'],
       payoutReleasedAt: map['payoutReleasedAt'] != null ? (map['payoutReleasedAt'] as Timestamp).toDate() : null,
@@ -422,6 +438,9 @@ class BookingModel {
     List<String>? sessionPhotos,
     String? sessionNotes,
     String? clientApprovalStatus,
+    int? rating,
+    String? review,
+    DateTime? ratedAt,
     bool? payoutReleased,
     String? walletTransactionId,
     DateTime? payoutReleasedAt,
@@ -481,6 +500,9 @@ class BookingModel {
       sessionPhotos: sessionPhotos ?? this.sessionPhotos,
       sessionNotes: sessionNotes ?? this.sessionNotes,
       clientApprovalStatus: clientApprovalStatus ?? this.clientApprovalStatus,
+      rating: rating ?? this.rating,
+      review: review ?? this.review,
+      ratedAt: ratedAt ?? this.ratedAt,
       payoutReleased: payoutReleased ?? this.payoutReleased,
       walletTransactionId: walletTransactionId ?? this.walletTransactionId,
       payoutReleasedAt: payoutReleasedAt ?? this.payoutReleasedAt,

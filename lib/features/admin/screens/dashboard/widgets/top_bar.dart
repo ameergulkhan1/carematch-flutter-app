@@ -6,26 +6,29 @@ import '../../../admin_routes.dart';
 import '../../../../../services/notification_service.dart';
 import '../../../../../features/shared/widgets/notification_panel.dart';
 import '../../../../../core/routes/app_routes.dart';
+import '../../../../../shared/utils/responsive_utils.dart';
 
 class AdminTopBarNew extends StatelessWidget {
   final String title;
   final bool showSearch;
   final VoidCallback? onRefresh;
+  final VoidCallback? onMenuTap;
 
   const AdminTopBarNew({
     super.key,
     required this.title,
     this.showSearch = false,
     this.onRefresh,
+    this.onMenuTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isSmallScreen = screenWidth < 600;
+    final isMobile = ResponsiveUtils.isMobile(context);
+    final isTablet = ResponsiveUtils.isTablet(context);
 
     return Container(
-      height: 70,
+      height: isMobile ? 60 : 70,
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
@@ -37,15 +40,25 @@ class AdminTopBarNew extends StatelessWidget {
         ],
       ),
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 12 : 24),
+        padding: EdgeInsets.symmetric(
+          horizontal: ResponsiveUtils.getContentPadding(context),
+        ),
         child: Row(
           children: [
+            // Mobile Menu Button
+            if (isMobile && onMenuTap != null)
+              IconButton(
+                icon: const Icon(Icons.menu),
+                onPressed: onMenuTap,
+                color: AdminColors.dark,
+              ),
+
             // Page Title
-            Flexible(
+            Expanded(
               child: Text(
                 title,
                 style: TextStyle(
-                  fontSize: isSmallScreen ? 18 : 24,
+                  fontSize: isMobile ? 18 : (isTablet ? 20 : 24),
                   fontWeight: FontWeight.bold,
                   color: AdminColors.dark,
                 ),
@@ -55,32 +68,30 @@ class AdminTopBarNew extends StatelessWidget {
 
             const SizedBox(width: 16),
 
-            // Search Bar (conditional) - Hide on small screens
-            if (showSearch && !isSmallScreen)
-              Expanded(
-                child: Container(
-                  constraints: const BoxConstraints(maxWidth: 400),
-                  height: 42,
-                  child: TextField(
-                    decoration: InputDecoration(
-                      hintText: 'Search...',
-                      prefixIcon: const Icon(Icons.search, size: 20),
-                      filled: true,
-                      fillColor: Colors.grey[100],
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+            // Search Bar (conditional) - Hide on mobile
+            if (showSearch && !isMobile)
+              Container(
+                constraints: BoxConstraints(maxWidth: isTablet ? 200 : 300),
+                height: 42,
+                child: TextField(
+                  decoration: InputDecoration(
+                    hintText: 'Search...',
+                    prefixIcon: const Icon(Icons.search, size: 20),
+                    filled: true,
+                    fillColor: Colors.grey[100],
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide.none,
                     ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                   ),
                 ),
               )
-            else if (!showSearch)
+            else if (!showSearch && !isMobile)
               const Spacer(),
 
-            // Refresh Button - Hide on very small screens
-            if (onRefresh != null && !isSmallScreen) ...[
+            // Refresh Button - Hide on mobile
+            if (onRefresh != null && !isMobile) ...[
               IconButton(
                 icon: const Icon(Icons.refresh_outlined),
                 tooltip: 'Refresh',
@@ -185,7 +196,7 @@ class AdminTopBarNew extends StatelessWidget {
                             ),
                           ),
                         ),
-                        if (!isSmallScreen) ...[
+                        if (!isMobile) ...[
                           const SizedBox(width: 4),
                           Flexible(
                             child: Column(

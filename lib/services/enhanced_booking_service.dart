@@ -786,7 +786,7 @@ class EnhancedBookingService {
   }) async {
     try {
       print('🔵 Checking availability for caregiver: $caregiverId');
-      print('🔵 Time slot: ${startDate} to ${endDate}');
+      print('🔵 Time slot: $startDate to $endDate');
       if (excludeBookingId != null) {
         print('🔵 Excluding booking: $excludeBookingId from conflict check');
       }

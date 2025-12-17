@@ -1,72 +1,101 @@
 import 'package:flutter/material.dart';
 import '../caregiver_colors.dart';
+import '../../../../../shared/utils/responsive_utils.dart';
 
 class ReviewsPage extends StatelessWidget {
   const ReviewsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = ResponsiveUtils.isMobile(context);
+    final padding = ResponsiveUtils.getContentPadding(context);
+
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(padding),
       child: Column(
         children: [
-          _buildRatingOverview(),
-          const SizedBox(height: 24),
+          _buildRatingOverview(isMobile),
+          SizedBox(height: isMobile ? 16 : 24),
           _buildReviewCard(
             'John Smith',
             5,
             'Excellent caregiver! Very professional and caring.',
             '2 days ago',
+            isMobile,
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: isMobile ? 12 : 16),
           _buildReviewCard(
             'Mary Johnson',
             5,
             'Highly recommend! My mother loves her visits.',
             '1 week ago',
+            isMobile,
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: isMobile ? 12 : 16),
           _buildReviewCard(
             'Robert Williams',
             4,
             'Great service, always on time and very helpful.',
             '2 weeks ago',
+            isMobile,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildRatingOverview() {
+  Widget _buildRatingOverview(bool isMobile) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(isMobile ? 20 : 28),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [CaregiverColors.warning, Color(0xFFFBBF24)],
+        gradient: LinearGradient(
+          colors: [
+            CaregiverColors.warning,
+            CaregiverColors.warning.withOpacity(0.8),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: CaregiverColors.warning.withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         children: [
-          const Text(
+          Text(
             '4.8',
             style: TextStyle(
-              fontSize: 48,
+              fontSize: isMobile ? 40 : 52,
               fontWeight: FontWeight.bold,
               color: Colors.white,
+              height: 1.2,
             ),
           ),
+          const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: List.generate(
               5,
-              (index) => const Icon(Icons.star, color: Colors.white, size: 24),
+              (index) => Icon(
+                Icons.star,
+                color: Colors.white,
+                size: isMobile ? 22 : 26,
+              ),
             ),
           ),
-          const SizedBox(height: 8),
-          const Text(
+          const SizedBox(height: 12),
+          Text(
             'Based on 48 reviews',
-            style: TextStyle(color: Colors.white, fontSize: 14),
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.9),
+              fontSize: isMobile ? 13 : 15,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
       ),
@@ -78,13 +107,24 @@ class ReviewsPage extends StatelessWidget {
     int rating,
     String review,
     String timeAgo,
+    bool isMobile,
   ) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(isMobile ? 16 : 20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: CaregiverColors.primary.withOpacity(0.1),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: CaregiverColors.primary.withOpacity(0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

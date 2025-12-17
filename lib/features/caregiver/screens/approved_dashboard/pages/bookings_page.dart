@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../caregiver_colors.dart';
 import '../../../../../services/enhanced_booking_service.dart';
 import '../../../../../models/booking_model.dart';
+import '../../../../../shared/widgets/rating_dialog.dart';
+import '../../../../../shared/utils/responsive_utils.dart';
 
 class BookingsPage extends StatefulWidget {
   const BookingsPage({super.key});
@@ -68,15 +70,26 @@ class _BookingsPageState extends State<BookingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = ResponsiveUtils.isMobile(context);
+    final padding = ResponsiveUtils.getContentPadding(context);
+
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(padding),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildFilterChips(),
-          const SizedBox(height: 24),
+          SizedBox(height: isMobile ? 16 : 24),
           _isLoading
-              ? const Center(child: CircularProgressIndicator())
+              ? Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(isMobile ? 40 : 60),
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                          CaregiverColors.primary),
+                    ),
+                  ),
+                )
               : _bookings.isEmpty
                   ? _buildEmptyState()
                   : _buildBookingsList(),
@@ -240,13 +253,27 @@ class _BookingsPageState extends State<BookingsPage> {
                   color: statusColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Text(
-                  _getStatusText(booking.status),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: statusColor,
-                    fontWeight: FontWeight.w600,
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Payment status indicator
+                    if (booking.status == BookingStatus.confirmed) ...[
+                      Icon(Icons.check_circle, size: 14, color: statusColor),
+                      const SizedBox(width: 4),
+                    ],
+                    if (booking.status == BookingStatus.pendingPayment) ...[
+                      Icon(Icons.payment, size: 14, color: statusColor),
+                      const SizedBox(width: 4),
+                    ],
+                    Text(
+                      _getStatusText(booking.status),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: statusColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -269,6 +296,77 @@ class _BookingsPageState extends State<BookingsPage> {
                 '${booking.startTime} - ${booking.endTime}',
                 style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
               ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Payment and amount info
+          Row(
+            children: [
+              Icon(Icons.attach_money, size: 16, color: Colors.grey.shade600),
+              const SizedBox(width: 8),
+              Text(
+                '\$${booking.totalAmount.toStringAsFixed(2)}',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey.shade700,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(width: 24),
+              // Payment status badge
+              if (booking.status == BookingStatus.confirmed) ...[
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.green.shade300),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.check_circle,
+                          size: 14, color: Colors.green.shade700),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Paid',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.green.shade700,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ] else if (booking.status == BookingStatus.pendingPayment) ...[
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.orange.shade300),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.schedule,
+                          size: 14, color: Colors.orange.shade700),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Awaiting Payment',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.orange.shade700,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
           const SizedBox(height: 12),
@@ -296,10 +394,12 @@ class _BookingsPageState extends State<BookingsPage> {
                       _showRejectDialog(context, booking);
                     },
                     icon: const Icon(Icons.close, size: 18),
-                    label: const Text('Reject', style: TextStyle(fontWeight: FontWeight.w600)),
+                    label: const Text('Reject',
+                        style: TextStyle(fontWeight: FontWeight.w600)),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: CaregiverColors.danger,
-                      side: const BorderSide(color: CaregiverColors.danger, width: 1.5),
+                      side: const BorderSide(
+                          color: CaregiverColors.danger, width: 1.5),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                   ),
@@ -344,7 +444,8 @@ class _BookingsPageState extends State<BookingsPage> {
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text('❌ Failed to accept booking. Please check the logs or try again.'),
+                                content: Text(
+                                    '❌ Failed to accept booking. Please check the logs or try again.'),
                                 backgroundColor: Colors.red,
                                 duration: Duration(seconds: 4),
                               ),
@@ -355,7 +456,8 @@ class _BookingsPageState extends State<BookingsPage> {
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text('❌ You must be logged in to accept bookings'),
+                              content: Text(
+                                  '❌ You must be logged in to accept bookings'),
                               backgroundColor: Colors.red,
                             ),
                           );
@@ -363,7 +465,8 @@ class _BookingsPageState extends State<BookingsPage> {
                       }
                     },
                     icon: const Icon(Icons.check, size: 18),
-                    label: const Text('Accept', style: TextStyle(fontWeight: FontWeight.w600)),
+                    label: const Text('Accept',
+                        style: TextStyle(fontWeight: FontWeight.w600)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: CaregiverColors.success,
                       foregroundColor: Colors.white,
@@ -384,10 +487,12 @@ class _BookingsPageState extends State<BookingsPage> {
                       _showBookingDetails(context, booking);
                     },
                     icon: const Icon(Icons.info_outline, size: 18),
-                    label: const Text('View Details', style: TextStyle(fontWeight: FontWeight.w600)),
+                    label: const Text('View Details',
+                        style: TextStyle(fontWeight: FontWeight.w600)),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: CaregiverColors.primary,
-                      side: const BorderSide(color: CaregiverColors.primary, width: 1.5),
+                      side: const BorderSide(
+                          color: CaregiverColors.primary, width: 1.5),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                   ),
@@ -405,7 +510,8 @@ class _BookingsPageState extends State<BookingsPage> {
                       }
                     },
                     icon: const Icon(Icons.play_arrow, size: 18),
-                    label: const Text('Start Session', style: TextStyle(fontWeight: FontWeight.w600)),
+                    label: const Text('Start Session',
+                        style: TextStyle(fontWeight: FontWeight.w600)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: CaregiverColors.primary,
                       foregroundColor: Colors.white,
@@ -427,10 +533,29 @@ class _BookingsPageState extends State<BookingsPage> {
                   _showBookingDetails(context, booking);
                 },
                 icon: const Icon(Icons.info_outline, size: 18),
-                label: const Text('View Full Details', style: TextStyle(fontWeight: FontWeight.w600)),
+                label: const Text('View Full Details',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: CaregiverColors.primary,
-                  side: const BorderSide(color: CaregiverColors.primary, width: 1.5),
+                  side: const BorderSide(
+                      color: CaregiverColors.primary, width: 1.5),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
+          ],
+          // Rating button for completed bookings
+          if (booking.status == BookingStatus.completed) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => _showRatingDialog(booking),
+                icon: const Icon(Icons.star, size: 18),
+                label: const Text('Rate Client'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.amber.shade600,
+                  foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
               ),
@@ -441,14 +566,7 @@ class _BookingsPageState extends State<BookingsPage> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: () async {
-                  // End session
-                  final user = FirebaseAuth.instance.currentUser;
-                  if (user != null) {
-                    await _bookingService.endSession(booking.id, user.uid);
-                    _loadBookings();
-                  }
-                },
+                onPressed: () => _showEndSessionDialog(booking),
                 icon: const Icon(Icons.stop, size: 18),
                 label: const Text('End Session'),
                 style: ElevatedButton.styleFrom(
@@ -718,16 +836,9 @@ class _BookingsPageState extends State<BookingsPage> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: () async {
-                        final user = FirebaseAuth.instance.currentUser;
-                        if (user != null) {
-                          await _bookingService.endSession(
-                              booking.id, user.uid);
-                          if (context.mounted) {
-                            Navigator.pop(context);
-                            _loadBookings();
-                          }
-                        }
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _showEndSessionDialog(booking);
                       },
                       icon: const Icon(Icons.stop),
                       label: const Text('End Session'),
@@ -918,6 +1029,273 @@ class _BookingsPageState extends State<BookingsPage> {
         return Icons.warning_outlined;
       case BookingStatus.resolved:
         return Icons.verified_outlined;
+    }
+  }
+
+  void _showRatingDialog(BookingModel booking) async {
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => RatingDialog(
+        booking: booking,
+        reviewerType: 'caregiver',
+        onRatingSubmitted: () => _loadBookings(),
+      ),
+    );
+
+    if (result == true && mounted) {
+      _loadBookings(); // Refresh bookings list
+    }
+  }
+
+  void _showEndSessionDialog(BookingModel booking) {
+    final notesController = TextEditingController();
+    bool isSubmitting = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: CaregiverColors.danger.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.stop_circle,
+                    color: CaregiverColors.danger,
+                    size: 28,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'End Session',
+                        style: TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        'Finalize session details',
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.normal,
+                            color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Client info
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          backgroundColor:
+                              CaregiverColors.primary.withOpacity(0.1),
+                          child: Text(
+                            booking.clientName[0].toUpperCase(),
+                            style: const TextStyle(
+                              color: CaregiverColors.primary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                booking.clientName,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                ),
+                              ),
+                              Text(
+                                booking.serviceType.name,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Session notes
+                  const Text(
+                    'Session Summary (Optional)',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: CaregiverColors.dark,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Add notes about what was accomplished during the session',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: notesController,
+                    maxLines: 5,
+                    maxLength: 500,
+                    decoration: InputDecoration(
+                      hintText:
+                          'e.g., Completed medication administration, assisted with mobility exercises, prepared meals...',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                            color: CaregiverColors.primary, width: 2),
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey.shade50,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Info box
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.blue.shade200),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.info_outline,
+                            color: Colors.blue.shade700, size: 20),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'The client will review the session before payment is released.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.blue.shade900,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: isSubmitting ? null : () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton.icon(
+                onPressed: isSubmitting
+                    ? null
+                    : () async {
+                        setState(() => isSubmitting = true);
+                        await _endSession(booking, notesController.text.trim());
+                        if (mounted) {
+                          Navigator.pop(context);
+                        }
+                      },
+                icon: isSubmitting
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white),
+                      )
+                    : const Icon(Icons.check_circle, size: 20),
+                label: Text(isSubmitting ? 'Ending...' : 'End Session'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: CaregiverColors.primary,
+                  foregroundColor: Colors.white,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _endSession(BookingModel booking, String notes) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      // Add session notes if provided
+      if (notes.isNotEmpty) {
+        await _bookingService.addSessionNotes(booking.id, notes, user.uid);
+      }
+
+      // End the session
+      await _bookingService.endSession(booking.id, user.uid);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 12),
+                Expanded(child: Text('Session ended successfully!')),
+              ],
+            ),
+            backgroundColor: CaregiverColors.secondary,
+            duration: Duration(seconds: 3),
+          ),
+        );
+        _loadBookings();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error ending session: $e'),
+            backgroundColor: CaregiverColors.danger,
+          ),
+        );
+      }
     }
   }
 }

@@ -304,13 +304,13 @@ class _PhoneNumberInputState extends State<PhoneNumberInput> {
     );
   }
 
-  // Static method to get full phone number with country code
+  // Utility methods reserved for future use
+  /*
   static String getFullPhoneNumber(String phoneNumber, CountryData country) {
     final digitsOnly = phoneNumber.replaceAll(RegExp(r'[^\d]'), '');
     return '${country.dialCode} $digitsOnly';
   }
 
-  // Static method to parse phone number and extract country
   static Map<String, String> parsePhoneNumber(String fullPhoneNumber) {
     for (final country in countries) {
       if (fullPhoneNumber.startsWith(country.dialCode)) {
@@ -327,4 +327,5 @@ class _PhoneNumberInputState extends State<PhoneNumberInput> {
       'phoneNumber': fullPhoneNumber,
     };
   }
+  */
 }

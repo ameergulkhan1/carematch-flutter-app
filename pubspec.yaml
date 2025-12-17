@@ -17,6 +17,7 @@ dependencies:
   firebase_auth: ^4.17.3
   cloud_firestore: ^4.13.4
   firebase_storage: ^11.5.3
+  cloud_functions: ^4.5.3
   google_sign_in: ^6.2.1
 
   # State Management
@@ -41,16 +42,35 @@ dependencies:
   shared_preferences: ^2.2.2
   crypto: ^3.0.3
   google_maps_flutter: ^2.14.0
+  geolocator: ^12.0.0
   flutter_dotenv: ^6.0.0
   table_calendar: ^3.0.9
   pdf: ^3.10.7
+  equatable: ^2.0.5
+  dartz: ^0.10.1
+  logger: ^2.0.2
+  get_it: ^7.6.0
+  injectable: ^2.3.2
+  flutter_riverpod: ^2.4.9
+  connectivity_plus: ^5.0.2
+  dio: ^5.4.0
+  freezed_annotation: ^2.4.1
+  json_annotation: ^4.8.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
+  build_runner: ^2.4.7
+  injectable_generator: ^2.4.1
+  freezed: ^2.4.6
+  json_serializable: ^6.7.1
+  mockito: ^5.4.4
+  fake_cloud_firestore: ^2.5.2
+
 flutter:
   uses-material-design: true
+  generate: true
 
   assets:
     - assets/images/splash/

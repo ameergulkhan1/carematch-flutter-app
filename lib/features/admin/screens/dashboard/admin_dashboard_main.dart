@@ -10,6 +10,7 @@ import '../admin_verifications_screen.dart';
 import '../admin_documents_screen.dart';
 import '../../services/admin_auth_service.dart';
 import '../../admin_routes.dart';
+import '../../../../shared/utils/responsive_utils.dart';
 
 class AdminDashboardMain extends StatefulWidget {
   const AdminDashboardMain({super.key});
@@ -22,11 +23,21 @@ class _AdminDashboardMainState extends State<AdminDashboardMain> {
   int _selectedIndex = 0;
   bool _isSidebarExpanded = true;
   final _adminAuthService = AdminAuthService();
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
     super.initState();
     _checkAuth();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Auto-collapse sidebar on tablet
+    if (ResponsiveUtils.shouldAutoCollapseSidebar(context)) {
+      _isSidebarExpanded = false;
+    }
   }
 
   Future<void> _checkAuth() async {
@@ -38,23 +49,24 @@ class _AdminDashboardMainState extends State<AdminDashboardMain> {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = ResponsiveUtils.isMobile(context);
+
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: AdminColors.background,
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final isMobile = constraints.maxWidth < 768;
-          final isTablet = constraints.maxWidth >= 768 && constraints.maxWidth < 1024;
-          
+      drawer: isMobile ? _buildMobileDrawer() : null,
+      body: Builder(
+        builder: (context) {
           return Row(
             children: [
-              // Sidebar - hide on mobile, show collapsed on tablet
+              // Desktop/Tablet Sidebar
               if (!isMobile)
                 AdminSidebarNew(
                   selectedIndex: _selectedIndex,
                   onItemSelected: (index) {
                     setState(() => _selectedIndex = index);
                   },
-                  isExpanded: !isTablet && _isSidebarExpanded,
+                  isExpanded: _isSidebarExpanded,
                   onToggle: () {
                     setState(() => _isSidebarExpanded = !_isSidebarExpanded);
                   },
@@ -71,6 +83,9 @@ class _AdminDashboardMainState extends State<AdminDashboardMain> {
                       onRefresh: _selectedIndex == 0 ? () {
                         setState(() {});
                       } : null,
+                      onMenuTap: isMobile ? () {
+                        Scaffold.of(context).openDrawer();
+                      } : null,
                     ),
 
                     // Page content
@@ -84,20 +99,22 @@ class _AdminDashboardMainState extends State<AdminDashboardMain> {
           );
         },
       ),
-      // Mobile drawer
-      drawer: MediaQuery.of(context).size.width < 768
-          ? Drawer(
-              child: AdminSidebarNew(
-                selectedIndex: _selectedIndex,
-                onItemSelected: (index) {
-                  setState(() => _selectedIndex = index);
-                  Navigator.pop(context);
-                },
-                isExpanded: true,
-                onToggle: () {},
-              ),
-            )
-          : null,
+    );
+  }
+
+  Widget _buildMobileDrawer() {
+    return Drawer(
+      child: AdminSidebarNew(
+        selectedIndex: _selectedIndex,
+        onItemSelected: (index) {
+          setState(() => _selectedIndex = index);
+          Navigator.of(context).pop();
+        },
+        isExpanded: true,
+        onToggle: () {
+          Navigator.of(context).pop();
+        },
+      ),
     );
   }
 

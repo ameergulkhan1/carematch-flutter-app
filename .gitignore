@@ -12,6 +12,10 @@
 .swiftpm/
 migrate_working_dir/
 
+# Node modules (Web build dependencies)
+node_modules/
+package-lock.json
+
 # IntelliJ related
 *.iml
 *.ipr
@@ -32,6 +36,12 @@ migrate_working_dir/
 .pub/
 /build/
 /coverage/
+
+# Generated files (do not commit)
+*.g.dart
+*.mocks.dart
+*.freezed.dart
+*.config.dart
 
 # Symbolication related
 app.*.symbols
@@ -81,3 +91,40 @@ ui-debug.log
 config/dev.dart
 config/prod.dart
 config/staging.dart
+
+# Documentation files (DO NOT UPLOAD TO GITHUB)
+*.md
+!README.md
+WARNINGS_EXPLAINED.md
+RATING_BILLING_FIXES.md
+QUICK_START_ANDROID.md
+MOCK_PAYMENT_GUIDE.md
+FIREBASE_DEPLOYMENT_GUIDE.md
+EMAILJS_TEMPLATES.md
+EMAILJS_INTEGRATION_GUIDE.md
+DEPLOY_FIRESTORE_RULES_AND_INDEXES.md
+CLEAN_ARCHITECTURE_GUIDE.md
+project_structure.txt
+
+# Security and Database Rules (KEEP LOCAL, DO NOT UPLOAD)
+firestore_rules_COMPLETE.rules
+firestore_TEMP_OPEN_RULES.rules
+storage.rules
+firestore.rules
+firestore.indexes.json
+firebase.json
+remoteconfig.template.json
+
+# Backup files
+revert_backup_*/
+*.backup
+
+# Batch scripts
+*.bat
+cleanup_for_sharing.bat
+REMOVE_SENSITIVE_FILES.bat
+
+# Local properties
+android/local.properties
+android/gradle.properties
+android/app/google-services.json.example

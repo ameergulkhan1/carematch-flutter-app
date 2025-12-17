@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/app_text_styles.dart';
 import '../../../services/caregiver_search_service.dart';
 import '../../../models/caregiver_user_model.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../shared/utils/responsive_utils.dart';
+import '../widgets/caregiver_filter_panel.dart';
+import '../widgets/client_nearby_caregivers_map.dart';
 import 'caregiver_profile_view.dart';
 
 class SearchCaregiversScreen extends StatefulWidget {
@@ -17,19 +20,19 @@ class SearchCaregiversScreen extends StatefulWidget {
 class _SearchCaregiversScreenState extends State<SearchCaregiversScreen> {
   final CaregiverSearchService _searchService = CaregiverSearchService();
   final TextEditingController _searchController = TextEditingController();
-  
+
   List<CaregiverUser> _allCaregivers = [];
   List<CaregiverUser> _filteredCaregivers = [];
   Set<String> _favoriteCaregiverIds = {};
   bool _isLoading = true;
   bool _showFilters = false;
-  
+  bool _showMap = false;
+
   // Filter values
   final List<String> _selectedServices = [];
   int? _minExperience;
   String? _selectedCity;
-  String _sortBy = 'rating'; // rating, experience, rate
-  
+
   // Available filter options
   final List<String> _availableServices = [
     'Child Care',
@@ -41,7 +44,7 @@ class _SearchCaregiversScreenState extends State<SearchCaregiversScreen> {
     'Respite Care',
     'Live-in Care'
   ];
-  
+
   final List<String> _availableCities = [
     'New York',
     'Los Angeles',
@@ -89,23 +92,22 @@ class _SearchCaregiversScreenState extends State<SearchCaregiversScreen> {
   void _applyFilters() {
     setState(() {
       _filteredCaregivers = _allCaregivers.where((caregiver) {
-        // Search text filter
         if (_searchController.text.isNotEmpty) {
           final searchLower = _searchController.text.toLowerCase();
           if (!caregiver.fullName.toLowerCase().contains(searchLower) &&
-              !caregiver.specializations.any((s) => s.toLowerCase().contains(searchLower))) {
+              !caregiver.specializations
+                  .any((s) => s.toLowerCase().contains(searchLower))) {
             return false;
           }
         }
 
-        // Service filter
         if (_selectedServices.isNotEmpty) {
-          if (!_selectedServices.any((s) => caregiver.specializations.contains(s))) {
+          if (!_selectedServices
+              .any((s) => caregiver.specializations.contains(s))) {
             return false;
           }
         }
 
-        // Experience filter
         if (_minExperience != null && caregiver.yearsOfExperience != null) {
           final experience = int.tryParse(caregiver.yearsOfExperience!) ?? 0;
           if (experience < _minExperience!) {
@@ -113,7 +115,6 @@ class _SearchCaregiversScreenState extends State<SearchCaregiversScreen> {
           }
         }
 
-        // City filter
         if (_selectedCity != null && _selectedCity!.isNotEmpty) {
           if (caregiver.city.toLowerCase() != _selectedCity!.toLowerCase()) {
             return false;
@@ -122,40 +123,21 @@ class _SearchCaregiversScreenState extends State<SearchCaregiversScreen> {
 
         return true;
       }).toList();
-
-      // Apply sorting
-      _filteredCaregivers.sort((a, b) {
-        switch (_sortBy) {
-          case 'experience':
-            final expA = int.tryParse(a.yearsOfExperience ?? '0') ?? 0;
-            final expB = int.tryParse(b.yearsOfExperience ?? '0') ?? 0;
-            return expB.compareTo(expA);
-          case 'newest':
-            return b.createdAt.compareTo(a.createdAt);
-          default: // rating or default
-            // For now, sort by verification status and creation date
-            if (a.verificationStatus == 'approved' && b.verificationStatus != 'approved') return -1;
-            if (b.verificationStatus == 'approved' && a.verificationStatus != 'approved') return 1;
-            return b.createdAt.compareTo(a.createdAt);
-        }
-      });
     });
   }
 
   Future<void> _toggleFavorite(String caregiverId) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final userId = authProvider.currentUser?.uid;
-    
+
     if (userId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please login to save favorites')),
+        const SnackBar(content: Text('Please sign in to save favorites')),
       );
       return;
     }
 
-    final isFavorite = _favoriteCaregiverIds.contains(caregiverId);
-    
-    if (isFavorite) {
+    if (_favoriteCaregiverIds.contains(caregiverId)) {
       await _searchService.removeCaregiverFromFavorites(userId, caregiverId);
       setState(() => _favoriteCaregiverIds.remove(caregiverId));
     } else {
@@ -169,29 +151,45 @@ class _SearchCaregiversScreenState extends State<SearchCaregiversScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Find Caregivers'),
+        title: Text(
+          'Find Caregivers',
+          style: TextStyle(
+            fontSize: ResponsiveUtils.getFontSize(context,
+                mobile: 18, tablet: 20, desktop: 22),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
-        actions: [
-          IconButton(
-            icon: Icon(_showFilters ? Icons.filter_list_off : Icons.filter_list),
-            onPressed: () => setState(() => _showFilters = !_showFilters),
-          ),
-        ],
       ),
-      body: Column(
-        children: [
-          _buildSearchBar(),
-          if (_showFilters) _buildFilterPanel(),
-          _buildResultsHeader(),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _filteredCaregivers.isEmpty
-                    ? _buildEmptyState()
-                    : _buildCaregiverGrid(),
-          ),
+      body: CustomScrollView(
+        slivers: [
+          // Search Bar
+          SliverToBoxAdapter(child: _buildSearchBar()),
+          
+          // Filter and Map Buttons
+          SliverToBoxAdapter(child: _buildActionButtons()),
+          
+          // Filter Panel (collapsible)
+          if (_showFilters)
+            SliverToBoxAdapter(child: _buildFilterPanel()),
+          
+          // Map (collapsible)
+          if (_showMap)
+            SliverToBoxAdapter(child: _buildMapSection()),
+          
+          // Results Header
+          SliverToBoxAdapter(child: _buildResultsHeader()),
+          
+          // Loading or Empty State or Grid
+          _isLoading
+              ? const SliverFillRemaining(
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              : _filteredCaregivers.isEmpty
+                  ? SliverFillRemaining(child: _buildEmptyState())
+                  : _buildCaregiverSliverGrid(),
         ],
       ),
     );
@@ -200,149 +198,258 @@ class _SearchCaregiversScreenState extends State<SearchCaregiversScreen> {
   Widget _buildSearchBar() {
     return Container(
       color: Colors.white,
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(ResponsiveUtils.getContentPadding(context)),
       child: TextField(
         controller: _searchController,
         decoration: InputDecoration(
           hintText: 'Search by name or service...',
-          prefixIcon: const Icon(Icons.search),
+          hintStyle: TextStyle(
+            fontSize: ResponsiveUtils.getFontSize(context,
+                mobile: 14, tablet: 15, desktop: 16),
+            color: AppColors.textSecondary,
+          ),
+          prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary),
           suffixIcon: _searchController.text.isNotEmpty
               ? IconButton(
-                  icon: const Icon(Icons.clear),
+                  icon: const Icon(Icons.clear, color: AppColors.textSecondary),
                   onPressed: () {
                     _searchController.clear();
                     _applyFilters();
                   },
                 )
               : null,
+          filled: true,
+          fillColor: AppColors.background,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppColors.border),
+            borderSide: BorderSide.none,
           ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppColors.border),
-          ),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),
         onChanged: (_) => _applyFilters(),
       ),
     );
   }
 
-  Widget _buildFilterPanel() {
+  Widget _buildActionButtons() {
+    final hasActiveFilters = _selectedServices.isNotEmpty ||
+        _minExperience != null ||
+        _selectedCity != null;
+    final isMobile = ResponsiveUtils.isMobile(context);
+
     return Container(
       color: Colors.white,
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.symmetric(
+        horizontal: ResponsiveUtils.getContentPadding(context),
+        vertical: 8,
+      ),
+      child: Row(
+        children: [
+          // Filter Button
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: () => setState(() => _showFilters = !_showFilters),
+              icon: Icon(
+                _showFilters ? Icons.filter_list_off : Icons.filter_alt,
+                size: isMobile ? 18 : 20,
+              ),
+              label: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      _showFilters ? 'Hide Filters' : 'Filters',
+                      style: TextStyle(
+                        fontSize: ResponsiveUtils.getFontSize(context,
+                            mobile: 13, tablet: 14, desktop: 15),
+                        fontWeight: FontWeight.w600,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (hasActiveFilters) ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '${(_selectedServices.length + (_minExperience != null ? 1 : 0) + (_selectedCity != null ? 1 : 0))}',
+                        style: TextStyle(
+                          fontSize: ResponsiveUtils.getFontSize(context,
+                              mobile: 11, tablet: 12, desktop: 13),
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: hasActiveFilters 
+                    ? AppColors.primary 
+                    : AppColors.primary.withOpacity(0.9),
+                foregroundColor: Colors.white,
+                elevation: hasActiveFilters ? 4 : 2,
+                padding: EdgeInsets.symmetric(
+                  horizontal: isMobile ? 12 : 16,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Map Button
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: () => setState(() => _showMap = !_showMap),
+              icon: Icon(
+                _showMap ? Icons.map_outlined : Icons.map,
+                size: isMobile ? 18 : 20,
+              ),
+              label: Text(
+                _showMap ? 'Hide Map' : 'Map View',
+                style: TextStyle(
+                  fontSize: ResponsiveUtils.getFontSize(context,
+                      mobile: 13, tablet: 14, desktop: 15),
+                  fontWeight: FontWeight.w600,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _showMap 
+                    ? AppColors.success 
+                    : AppColors.success.withOpacity(0.9),
+                foregroundColor: Colors.white,
+                elevation: _showMap ? 4 : 2,
+                padding: EdgeInsets.symmetric(
+                  horizontal: isMobile ? 12 : 16,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterPanel() {
+    return CaregiverFilterPanel(
+      selectedServices: _selectedServices,
+      minExperience: _minExperience,
+      selectedCity: _selectedCity,
+      availableServices: _availableServices,
+      availableCities: _availableCities,
+      onClearFilters: () {
+        setState(() {
+          _selectedServices.clear();
+          _minExperience = null;
+          _selectedCity = null;
+          _searchController.clear();
+        });
+        _applyFilters();
+      },
+      onServicesChanged: (services) {
+        setState(() {
+          _selectedServices.clear();
+          _selectedServices.addAll(services);
+        });
+        _applyFilters();
+      },
+      onExperienceChanged: (experience) {
+        setState(() => _minExperience = experience);
+        _applyFilters();
+      },
+      onCityChanged: (city) {
+        setState(() => _selectedCity = city);
+        _applyFilters();
+      },
+    );
+  }
+
+  Widget _buildMapSection() {
+    final isMobile = ResponsiveUtils.isMobile(context);
+    
+    // Get locations from filtered caregivers
+    List<LatLng> caregiverLocations = _filteredCaregivers
+        .where((c) => c.latitude != null && c.longitude != null)
+        .map((c) => LatLng(c.latitude!, c.longitude!))
+        .toList();
+
+    return Container(
+      color: Colors.white,
+      padding: EdgeInsets.all(ResponsiveUtils.getContentPadding(context)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Filters', style: AppTextStyles.titleMedium),
-          const SizedBox(height: 16),
-          
-          // Services filter
-          Text('Services', style: AppTextStyles.labelLarge),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _availableServices.map((service) {
-              final isSelected = _selectedServices.contains(service);
-              return FilterChip(
-                label: Text(service),
-                selected: isSelected,
-                onSelected: (selected) {
-                  setState(() {
-                    if (selected) {
-                      _selectedServices.add(service);
-                    } else {
-                      _selectedServices.remove(service);
-                    }
-                  });
-                  _applyFilters();
-                },
-                selectedColor: AppColors.primary.withOpacity(0.2),
-                checkmarkColor: AppColors.primary,
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 16),
-          
-          // City filter
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('City', style: AppTextStyles.labelLarge),
-                    const SizedBox(height: 8),
-                    DropdownButtonFormField<String>(
-                      initialValue: _selectedCity,
-                      decoration: InputDecoration(
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      ),
-                      hint: const Text('All Cities'),
-                      items: [
-                        const DropdownMenuItem(value: null, child: Text('All Cities')),
-                        ..._availableCities.map((city) => DropdownMenuItem(value: city, child: Text(city))),
-                      ],
-                      onChanged: (value) {
-                        setState(() => _selectedCity = value);
-                        _applyFilters();
-                      },
-                    ),
-                  ],
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.location_on,
+                  color: AppColors.primary,
+                  size: isMobile ? 20 : 22,
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Min. Experience', style: AppTextStyles.labelLarge),
-                    const SizedBox(height: 8),
-                    DropdownButtonFormField<int>(
-                      initialValue: _minExperience,
-                      decoration: InputDecoration(
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      ),
-                      hint: const Text('Any'),
-                      items: const [
-                        DropdownMenuItem(value: null, child: Text('Any')),
-                        DropdownMenuItem(value: 1, child: Text('1+ years')),
-                        DropdownMenuItem(value: 3, child: Text('3+ years')),
-                        DropdownMenuItem(value: 5, child: Text('5+ years')),
-                        DropdownMenuItem(value: 10, child: Text('10+ years')),
-                      ],
-                      onChanged: (value) {
-                        setState(() => _minExperience = value);
-                        _applyFilters();
-                      },
-                    ),
-                  ],
+                const SizedBox(width: 8),
+                Text(
+                  'Nearby Caregivers',
+                  style: TextStyle(
+                    fontSize: ResponsiveUtils.getFontSize(context,
+                        mobile: 16, tablet: 17, desktop: 18),
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          
-          // Clear filters button
-          Center(
-            child: TextButton.icon(
-              onPressed: () {
-                setState(() {
-                  _selectedServices.clear();
-                  _selectedCity = null;
-                  _minExperience = null;
-                  _searchController.clear();
-                });
-                _applyFilters();
-              },
-              icon: const Icon(Icons.clear_all),
-              label: const Text('Clear All Filters'),
+              ],
             ),
+          ),
+          SizedBox(
+            height: isMobile ? 300 : 400,
+            child: caregiverLocations.isEmpty
+                ? Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.background,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.location_off,
+                            size: isMobile ? 48 : 64,
+                            color: AppColors.textSecondary.withOpacity(0.5),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'No location data available',
+                            style: TextStyle(
+                              fontSize: ResponsiveUtils.getFontSize(context,
+                                  mobile: 14, tablet: 15, desktop: 16),
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : ClientNearbyCaregiversMap(
+                    caregiverLocations: caregiverLocations,
+                    clientLocation: null, // Can be set if client location is available
+                  ),
           ),
         ],
       ),
@@ -352,92 +459,96 @@ class _SearchCaregiversScreenState extends State<SearchCaregiversScreen> {
   Widget _buildResultsHeader() {
     return Container(
       color: Colors.white,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            '${_filteredCaregivers.length} Caregivers Found',
-            style: AppTextStyles.titleSmall,
-          ),
-          Row(
-            children: [
-              Text('Sort by:', style: AppTextStyles.bodySmall),
-              const SizedBox(width: 8),
-              DropdownButton<String>(
-                value: _sortBy,
-                underline: const SizedBox(),
-                items: const [
-                  DropdownMenuItem(value: 'rating', child: Text('Best Match')),
-                  DropdownMenuItem(value: 'experience', child: Text('Experience')),
-                  DropdownMenuItem(value: 'newest', child: Text('Newest')),
-                ],
-                onChanged: (value) {
-                  setState(() => _sortBy = value!);
-                  _applyFilters();
-                },
-              ),
-            ],
-          ),
-        ],
+      padding: EdgeInsets.symmetric(
+        horizontal: ResponsiveUtils.getContentPadding(context),
+        vertical: 12,
+      ),
+      child: Text(
+        '${_filteredCaregivers.length} ${_filteredCaregivers.length == 1 ? 'Caregiver' : 'Caregivers'} Found',
+        style: TextStyle(
+          fontSize: ResponsiveUtils.getFontSize(context,
+              mobile: 14, tablet: 15, desktop: 16),
+          fontWeight: FontWeight.w600,
+          color: AppColors.textPrimary,
+        ),
       ),
     );
   }
 
   Widget _buildEmptyState() {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.search_off, size: 64, color: AppColors.textSecondary),
-          const SizedBox(height: 16),
-          Text('No caregivers found', style: AppTextStyles.titleMedium),
-          const SizedBox(height: 8),
-          Text(
-            'Try adjusting your filters',
-            style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
-          ),
-        ],
+      child: Padding(
+        padding: EdgeInsets.all(ResponsiveUtils.getContentPadding(context)),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.search_off_rounded,
+              size: ResponsiveUtils.isMobile(context) ? 64 : 80,
+              color: AppColors.textSecondary.withOpacity(0.5),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'No Caregivers Found',
+              style: TextStyle(
+                fontSize: ResponsiveUtils.getFontSize(context,
+                    mobile: 18, tablet: 20, desktop: 22),
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Try adjusting your search criteria',
+              style: TextStyle(
+                fontSize: ResponsiveUtils.getFontSize(context,
+                    mobile: 14, tablet: 15, desktop: 16),
+                color: AppColors.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildCaregiverGrid() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // Determine number of columns based on width
-        int crossAxisCount = 1;
-        if (constraints.maxWidth >= 1200) {
-          crossAxisCount = 3;
-        } else if (constraints.maxWidth >= 768) {
-          crossAxisCount = 2;
-        }
-
-        return GridView.builder(
-          padding: const EdgeInsets.all(16),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount,
-            childAspectRatio: constraints.maxWidth < 768 ? 0.85 : 0.75,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
+  Widget _buildCaregiverSliverGrid() {
+    return SliverPadding(
+      padding: EdgeInsets.all(ResponsiveUtils.getContentPadding(context)),
+      sliver: SliverGrid(
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: ResponsiveUtils.getGridColumns(
+            context,
+            mobile: 1,
+            tablet: 2,
+            desktop: 3,
           ),
-          itemCount: _filteredCaregivers.length,
-          itemBuilder: (context, index) {
+          childAspectRatio: ResponsiveUtils.isMobile(context) ? 1.05 : 0.88,
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
+        ),
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
             final caregiver = _filteredCaregivers[index];
             final isFavorite = _favoriteCaregiverIds.contains(caregiver.uid);
             return _buildCaregiverCard(caregiver, isFavorite);
           },
-        );
-      },
+          childCount: _filteredCaregivers.length,
+        ),
+      ),
     );
   }
 
   Widget _buildCaregiverCard(CaregiverUser caregiver, bool isFavorite) {
     final experience = int.tryParse(caregiver.yearsOfExperience ?? '0') ?? 0;
-    
+    final isVerified = caregiver.verificationStatus == 'approved';
+    final isMobile = ResponsiveUtils.isMobile(context);
+
     return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 3,
+      shadowColor: Colors.black.withOpacity(0.1),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(
         onTap: () {
           Navigator.push(
@@ -447,43 +558,112 @@ class _SearchCaregiversScreenState extends State<SearchCaregiversScreen> {
             ),
           );
         },
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header with avatar and favorite button
-            Padding(
-              padding: const EdgeInsets.all(16),
+            // Header Section
+            Container(
+              padding: EdgeInsets.all(ResponsiveUtils.getCardPadding(context)),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.primary.withOpacity(0.05),
+                    AppColors.primary.withOpacity(0.02),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
+                ),
+              ),
               child: Row(
                 children: [
-                  CircleAvatar(
-                    radius: 30,
-                    backgroundColor: AppColors.primary.withOpacity(0.1),
-                    child: Text(
-                      caregiver.fullName[0].toUpperCase(),
-                      style: AppTextStyles.headlineSmall.copyWith(color: AppColors.primary),
+                  // Avatar
+                  Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isVerified
+                            ? AppColors.success
+                            : AppColors.primary.withOpacity(0.3),
+                        width: 2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withOpacity(0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: CircleAvatar(
+                      radius: isMobile ? 28 : 32,
+                      backgroundColor: AppColors.primary.withOpacity(0.1),
+                      child: Text(
+                        caregiver.fullName[0].toUpperCase(),
+                        style: TextStyle(
+                          fontSize: ResponsiveUtils.getFontSize(context,
+                              mobile: 20, tablet: 22, desktop: 24),
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                        ),
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 14),
+
+                  // Name and Location
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          caregiver.fullName,
-                          style: AppTextStyles.titleMedium,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
                         Row(
                           children: [
-                            const Icon(Icons.location_on, size: 14, color: AppColors.textSecondary),
+                            Expanded(
+                              child: Text(
+                                caregiver.fullName,
+                                style: TextStyle(
+                                  fontSize: ResponsiveUtils.getFontSize(context,
+                                      mobile: 15, tablet: 16, desktop: 17),
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.textPrimary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (isVerified)
+                              Tooltip(
+                                message: 'Verified Caregiver',
+                                child: Icon(
+                                  Icons.verified,
+                                  size: isMobile ? 16 : 18,
+                                  color: AppColors.success,
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.location_on_outlined,
+                              size: isMobile ? 13 : 14,
+                              color: AppColors.textSecondary,
+                            ),
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(
                                 '${caregiver.city}, ${caregiver.state}',
-                                style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+                                style: TextStyle(
+                                  fontSize: ResponsiveUtils.getFontSize(context,
+                                      mobile: 12, tablet: 13, desktop: 14),
+                                  color: AppColors.textSecondary,
+                                  fontWeight: FontWeight.w500,
+                                ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -493,58 +673,125 @@ class _SearchCaregiversScreenState extends State<SearchCaregiversScreen> {
                       ],
                     ),
                   ),
-                  IconButton(
-                    icon: Icon(
-                      isFavorite ? Icons.favorite : Icons.favorite_border,
-                      color: isFavorite ? AppColors.error : AppColors.textSecondary,
+
+                  // Favorite Button
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => _toggleFavorite(caregiver.uid),
+                      borderRadius: BorderRadius.circular(20),
+                      child: Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: Icon(
+                          isFavorite ? Icons.favorite : Icons.favorite_border,
+                          color: isFavorite
+                              ? AppColors.error
+                              : AppColors.textSecondary,
+                          size: isMobile ? 20 : 22,
+                        ),
+                      ),
                     ),
-                    onPressed: () => _toggleFavorite(caregiver.uid),
                   ),
                 ],
               ),
             ),
-            
-            const Divider(height: 1),
-            
-            // Details
+
+            // Content Section
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
+              child: SingleChildScrollView(
+                padding: EdgeInsets.all(ResponsiveUtils.getCardPadding(context)),
+                physics: const ClampingScrollPhysics(),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Experience
-                    Row(
-                      children: [
-                        const Icon(Icons.work_outline, size: 16, color: AppColors.primary),
-                        const SizedBox(width: 8),
-                        Text(
-                          '$experience years experience',
-                          style: AppTextStyles.bodySmall,
+                    // Experience Badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            AppColors.primary.withOpacity(0.12),
+                            AppColors.primary.withOpacity(0.08),
+                          ],
                         ),
-                      ],
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.workspace_premium,
+                            size: isMobile ? 14 : 15,
+                            color: AppColors.primary,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '$experience ${experience == 1 ? 'Year' : 'Years'} Experience',
+                            style: TextStyle(
+                              fontSize: ResponsiveUtils.getFontSize(context,
+                                  mobile: 12, tablet: 13, desktop: 14),
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 12),
-                    
+
+                    // Bio Preview
+                    if (caregiver.bio != null && caregiver.bio!.isNotEmpty) ...[
+                      Text(
+                        caregiver.bio!,
+                        style: TextStyle(
+                          fontSize: ResponsiveUtils.getFontSize(context,
+                              mobile: 12, tablet: 13, desktop: 14),
+                          color: AppColors.textSecondary,
+                          height: 1.3,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+
                     // Specializations
                     if (caregiver.specializations.isNotEmpty) ...[
-                      Text('Specializations:', style: AppTextStyles.labelSmall),
-                      const SizedBox(height: 6),
+                      Text(
+                        'Specializations',
+                        style: TextStyle(
+                          fontSize: ResponsiveUtils.getFontSize(context,
+                              mobile: 11, tablet: 12, desktop: 13),
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
                       Wrap(
                         spacing: 6,
                         runSpacing: 6,
                         children: caregiver.specializations.take(3).map((spec) {
                           return Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 5),
                             decoration: BoxDecoration(
-                              color: AppColors.primary.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(6),
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: AppColors.primary.withOpacity(0.3),
+                                width: 1,
+                              ),
                             ),
                             child: Text(
                               spec,
-                              style: AppTextStyles.labelSmall.copyWith(
+                              style: TextStyle(
+                                fontSize: ResponsiveUtils.getFontSize(context,
+                                    mobile: 10, tablet: 11, desktop: 12),
+                                fontWeight: FontWeight.w500,
                                 color: AppColors.primary,
-                                fontSize: 11,
                               ),
                             ),
                           );
@@ -552,69 +799,71 @@ class _SearchCaregiversScreenState extends State<SearchCaregiversScreen> {
                       ),
                       if (caregiver.specializations.length > 3)
                         Padding(
-                          padding: const EdgeInsets.only(top: 4),
+                          padding: const EdgeInsets.only(top: 6),
                           child: Text(
                             '+${caregiver.specializations.length - 3} more',
-                            style: AppTextStyles.labelSmall.copyWith(
+                            style: TextStyle(
+                              fontSize: ResponsiveUtils.getFontSize(context,
+                                  mobile: 10, tablet: 11, desktop: 12),
                               color: AppColors.textSecondary,
+                              fontStyle: FontStyle.italic,
                             ),
                           ),
                         ),
                     ],
-                    
-                    const Spacer(),
-                    
-                    // Verification badge
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: caregiver.verificationStatus == 'approved'
-                            ? AppColors.success.withOpacity(0.1)
-                            : AppColors.warning.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            caregiver.verificationStatus == 'approved'
-                                ? Icons.verified
-                                : Icons.pending,
-                            size: 14,
-                            color: caregiver.verificationStatus == 'approved'
-                                ? AppColors.success
-                                : AppColors.warning,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            caregiver.verificationStatus == 'approved'
-                                ? 'Verified'
-                                : 'Pending',
-                            style: AppTextStyles.labelSmall.copyWith(
-                              color: caregiver.verificationStatus == 'approved'
-                                  ? AppColors.success
-                                  : AppColors.warning,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
                   ],
                 ),
               ),
             ),
-            
-            // View Profile button
+
+            // View Profile Button
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: const BoxDecoration(
-                border: Border(top: BorderSide(color: AppColors.border)),
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(color: Colors.grey.shade200),
+                ),
               ),
-              child: Text(
-                'View Full Profile →',
-                textAlign: TextAlign.center,
-                style: AppTextStyles.labelMedium.copyWith(color: AppColors.primary),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            CaregiverProfileView(caregiver: caregiver),
+                      ),
+                    );
+                  },
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(16),
+                    bottomRight: Radius.circular(16),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'View Full Profile',
+                          style: TextStyle(
+                            fontSize: ResponsiveUtils.getFontSize(context,
+                                mobile: 13, tablet: 14, desktop: 15),
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Icon(
+                          Icons.arrow_forward,
+                          size: isMobile ? 16 : 18,
+                          color: AppColors.primary,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
           ],

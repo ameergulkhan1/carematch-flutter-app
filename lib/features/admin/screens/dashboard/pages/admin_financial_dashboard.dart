@@ -150,20 +150,20 @@ class _AdminFinancialDashboardState extends State<AdminFinancialDashboard> {
   }
 
   Widget _buildRevenueChart() {
-    return Card(
+    return const Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Revenue Trend (Last 7 Days)',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 16),
-            Container(
+            SizedBox(height: 16),
+            SizedBox(
               height: 200,
-              child: const Center(
+              child: Center(
                 child: Text('Chart implementation requires fl_chart package'),
               ),
             ),
@@ -343,18 +343,18 @@ class _AdminFinancialDashboardState extends State<AdminFinancialDashboard> {
   }
 
   Widget _buildRecentTransactions() {
-    return Card(
+    return const Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Recent Transactions',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 12),
-            const Center(
+            SizedBox(height: 12),
+            Center(
               child: Text('Transaction list implementation'),
             ),
           ],

@@ -1,8 +1,197 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
+const axios = require('axios');
+
 admin.initializeApp();
 
 const db = admin.firestore();
+
+// ============================================================================
+// EmailJS Integration (for OTP and Email Notifications)
+// ============================================================================
+
+// EmailJS Configuration
+const EMAILJS_SERVICE_ID = 'service_22itnmx';
+const EMAILJS_PUBLIC_KEY = 'zem4eqY2w1BlJMQ20';
+const EMAILJS_API_URL = 'https://api.emailjs.com/api/v1.0/email/send';
+
+// Template IDs
+const TEMPLATES = {
+  otp: 'template_x7c1p14',
+  passwordReset: 'template_password_reset', // Update with your actual template ID
+  welcome: 'template_x449azj',
+};
+
+/**
+ * Send OTP Email via EmailJS
+ */
+exports.sendOTPEmail = functions.https.onCall(async (data, context) => {
+  try {
+    const { email, name, otp, userType } = data;
+    
+    // Validate input
+    if (!email || !otp) {
+      throw new functions.https.HttpsError(
+        'invalid-argument',
+        'Email and OTP are required'
+      );
+    }
+    
+    console.log(`📧 Sending OTP to ${email} (${userType})`);
+    
+    // Call EmailJS API
+    const response = await axios.post(EMAILJS_API_URL, {
+      service_id: EMAILJS_SERVICE_ID,
+      template_id: TEMPLATES.otp,
+      user_id: EMAILJS_PUBLIC_KEY,
+      template_params: {
+        to_email: email,
+        to_name: name || 'User',
+        otp_code: otp,
+        expiry_minutes: '10',
+        app_name: 'CareMatch',
+        user_type: userType || 'client',
+        support_email: 'support@carematch.com',
+        current_year: new Date().getFullYear().toString(),
+      },
+    });
+    
+    console.log(`✅ OTP email sent successfully to ${email}`);
+    console.log(`   Response status: ${response.status}`);
+    
+    return {
+      success: true,
+      message: 'OTP email sent successfully',
+    };
+    
+  } catch (error) {
+    console.error('❌ Error sending OTP email:', error.message);
+    
+    if (error.response) {
+      console.error('   EmailJS response:', error.response.data);
+      throw new functions.https.HttpsError(
+        'internal',
+        `EmailJS error: ${error.response.data || error.message}`
+      );
+    }
+    
+    throw new functions.https.HttpsError('internal', error.message);
+  }
+});
+
+/**
+ * Send Password Reset Email via EmailJS
+ */
+exports.sendPasswordResetEmail = functions.https.onCall(async (data, context) => {
+  try {
+    const { email, resetCode } = data;
+    
+    // Validate input
+    if (!email || !resetCode) {
+      throw new functions.https.HttpsError(
+        'invalid-argument',
+        'Email and reset code are required'
+      );
+    }
+    
+    console.log(`🔐 Sending password reset to ${email}`);
+    
+    // Call EmailJS API
+    const response = await axios.post(EMAILJS_API_URL, {
+      service_id: EMAILJS_SERVICE_ID,
+      template_id: TEMPLATES.passwordReset,
+      user_id: EMAILJS_PUBLIC_KEY,
+      template_params: {
+        email: email,
+        link: resetCode, // Using 'link' variable to show the code
+        to_email: email,
+        app_name: 'CareMatch',
+        company_name: 'CareMatch',
+        expiry_minutes: '60',
+      },
+    });
+    
+    console.log(`✅ Password reset email sent to ${email}`);
+    console.log(`   Response status: ${response.status}`);
+    
+    return {
+      success: true,
+      message: 'Password reset email sent successfully',
+    };
+    
+  } catch (error) {
+    console.error('❌ Error sending password reset email:', error.message);
+    
+    if (error.response) {
+      console.error('   EmailJS response:', error.response.data);
+      throw new functions.https.HttpsError(
+        'internal',
+        `EmailJS error: ${error.response.data || error.message}`
+      );
+    }
+    
+    throw new functions.https.HttpsError('internal', error.message);
+  }
+});
+
+/**
+ * Send Welcome Email via EmailJS
+ */
+exports.sendWelcomeEmail = functions.https.onCall(async (data, context) => {
+  try {
+    const { email, name, userType } = data;
+    
+    // Validate input
+    if (!email) {
+      throw new functions.https.HttpsError(
+        'invalid-argument',
+        'Email is required'
+      );
+    }
+    
+    console.log(`👋 Sending welcome email to ${email} (${userType})`);
+    
+    // Call EmailJS API
+    const response = await axios.post(EMAILJS_API_URL, {
+      service_id: EMAILJS_SERVICE_ID,
+      template_id: TEMPLATES.welcome,
+      user_id: EMAILJS_PUBLIC_KEY,
+      template_params: {
+        to_email: email,
+        to_name: name || 'User',
+        user_type: userType || 'client',
+        app_name: 'CareMatch',
+        support_email: 'support@carematch.com',
+        current_year: new Date().getFullYear().toString(),
+      },
+    });
+    
+    console.log(`✅ Welcome email sent to ${email}`);
+    console.log(`   Response status: ${response.status}`);
+    
+    return {
+      success: true,
+      message: 'Welcome email sent successfully',
+    };
+    
+  } catch (error) {
+    console.error('❌ Error sending welcome email:', error.message);
+    
+    if (error.response) {
+      console.error('   EmailJS response:', error.response.data);
+      throw new functions.https.HttpsError(
+        'internal',
+        `EmailJS error: ${error.response.data || error.message}`
+      );
+    }
+    
+    throw new functions.https.HttpsError('internal', error.message);
+  }
+});
+
+// ============================================================================
+// Existing Cloud Functions
+// ============================================================================
 
 /**
  * Auto-escalate critical incidents

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import '../../../../core/constants/app_colors.dart';
 import '../../../../models/incident_report_model.dart';
 import '../../../../models/booking_model.dart';
 import '../../../../services/incident_service.dart';
@@ -36,7 +35,7 @@ class _IncidentReportScreenState extends State<IncidentReportScreen> {
 
   IncidentType _selectedType = IncidentType.serviceQualityIssue;
   IncidentSeverity _selectedSeverity = IncidentSeverity.medium;
-  List<File> _evidenceFiles = [];
+  final List<File> _evidenceFiles = [];
   bool _isSubmitting = false;
   DateTime _incidentDate = DateTime.now();
 
@@ -229,7 +228,7 @@ class _IncidentReportScreenState extends State<IncidentReportScreen> {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<IncidentType>(
-          value: _selectedType,
+          initialValue: _selectedType,
           decoration: const InputDecoration(
             border: OutlineInputBorder(),
             contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),

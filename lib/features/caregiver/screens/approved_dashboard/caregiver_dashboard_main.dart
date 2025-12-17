@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../services/auth_service.dart';
+import '../../../../shared/utils/responsive_utils.dart';
 import 'caregiver_colors.dart';
 import 'widgets/sidebar.dart';
 import 'widgets/top_bar.dart';
@@ -11,6 +12,7 @@ import 'pages/availability_page.dart';
 import 'pages/profile_page.dart';
 import 'pages/reviews_page.dart';
 import 'pages/settings_page.dart';
+import 'pages/earnings_page.dart';
 import '../../../chat/screens/chat_list_screen.dart';
 
 class CaregiverDashboard extends StatefulWidget {
@@ -26,11 +28,21 @@ class _CaregiverDashboardState extends State<CaregiverDashboard> {
   bool _isSidebarExpanded = true;
   Map<String, dynamic>? _caregiverData;
   bool _isLoading = true;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
     super.initState();
     _loadCaregiverData();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Auto-collapse sidebar on tablet
+    if (ResponsiveUtils.shouldAutoCollapseSidebar(context)) {
+      _isSidebarExpanded = false;
+    }
   }
 
   Future<void> _loadCaregiverData() async {
@@ -70,20 +82,20 @@ class _CaregiverDashboardState extends State<CaregiverDashboard> {
     }
 
     final caregiverName = _caregiverData?['fullName'] ?? 'Caregiver';
+    final isMobile = ResponsiveUtils.isMobile(context);
 
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: CaregiverColors.lightGray,
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final isMobile = constraints.maxWidth < 768;
-          final isTablet = constraints.maxWidth >= 768 && constraints.maxWidth < 1024;
-          
+      drawer: isMobile ? _buildMobileDrawer(caregiverName) : null,
+      body: Builder(
+        builder: (context) {
           return Row(
             children: [
-              // Sidebar - hide on mobile, show collapsed on tablet
+              // Desktop/Tablet Sidebar
               if (!isMobile)
                 CaregiverSidebar(
-                  isExpanded: !isTablet && _isSidebarExpanded,
+                  isExpanded: _isSidebarExpanded,
                   selectedIndex: _selectedIndex,
                   onMenuItemTapped: (index) {
                     setState(() {
@@ -112,6 +124,9 @@ class _CaregiverDashboardState extends State<CaregiverDashboard> {
                           Navigator.pushReplacementNamed(context, '/');
                         }
                       },
+                      onMenuTap: isMobile ? () {
+                        Scaffold.of(context).openDrawer();
+                      } : null,
                     ),
 
                     // Page Content
@@ -125,23 +140,25 @@ class _CaregiverDashboardState extends State<CaregiverDashboard> {
           );
         },
       ),
-      // Mobile drawer
-      drawer: MediaQuery.of(context).size.width < 768
-          ? Drawer(
-              child: CaregiverSidebar(
-                isExpanded: true,
-                selectedIndex: _selectedIndex,
-                onMenuItemTapped: (index) {
-                  setState(() {
-                    _selectedIndex = index;
-                  });
-                  Navigator.pop(context);
-                },
-                onToggle: () {},
-                caregiverName: caregiverName,
-              ),
-            )
-          : null,
+    );
+  }
+
+  Widget _buildMobileDrawer(String caregiverName) {
+    return Drawer(
+      child: CaregiverSidebar(
+        isExpanded: true,
+        selectedIndex: _selectedIndex,
+        onMenuItemTapped: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+          Navigator.of(context).pop();
+        },
+        onToggle: () {
+          Navigator.of(context).pop();
+        },
+        caregiverName: caregiverName,
+      ),
     );
   }
 
@@ -154,12 +171,14 @@ class _CaregiverDashboardState extends State<CaregiverDashboard> {
       case 2:
         return 'Messages';
       case 3:
-        return 'Availability';
+        return 'Earnings & Payments';
       case 4:
-        return 'My Profile';
+        return 'Availability';
       case 5:
-        return 'Reviews';
+        return 'My Profile';
       case 6:
+        return 'Reviews';
+      case 7:
         return 'Settings';
       default:
         return 'Dashboard';
@@ -177,12 +196,17 @@ class _CaregiverDashboardState extends State<CaregiverDashboard> {
       case 2:
         return const ChatListScreen();
       case 3:
-        return const AvailabilityPage();
+        return const EarningsPage();
       case 4:
-        return ProfilePage(caregiverData: _caregiverData);
+        return const AvailabilityPage();
       case 5:
-        return const ReviewsPage();
+        return ProfilePage(
+          caregiverData: _caregiverData,
+          userId: FirebaseAuth.instance.currentUser?.uid,
+        );
       case 6:
+        return const ReviewsPage();
+      case 7:
         return const SettingsPage();
       default:
         return DashboardPage(

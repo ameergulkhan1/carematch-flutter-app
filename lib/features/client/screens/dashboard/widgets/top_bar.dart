@@ -6,22 +6,30 @@ import 'package:provider/provider.dart';
 import '../../../../../core/routes/app_routes.dart';
 import '../../../../../services/notification_service.dart';
 import '../../../../../features/shared/widgets/notification_panel.dart';
+import '../../../../../shared/utils/responsive_utils.dart';
 
 class ClientTopBar extends StatelessWidget {
   final String title;
   final bool showSearch;
+  final VoidCallback? onMenuTap;
 
   const ClientTopBar({
     super.key,
     required this.title,
     this.showSearch = false,
+    this.onMenuTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = ResponsiveUtils.isMobile(context);
+    final isTablet = ResponsiveUtils.isTablet(context);
+
     return Container(
-      height: 70,
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      height: isMobile ? 60 : 70,
+      padding: EdgeInsets.symmetric(
+        horizontal: ResponsiveUtils.getContentPadding(context),
+      ),
       decoration: const BoxDecoration(
         color: Colors.white,
         boxShadow: [
@@ -34,20 +42,39 @@ class ClientTopBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
+          // Mobile menu button
+          if (isMobile && onMenuTap != null) ...[
+            IconButton(
+              icon: const Icon(Icons.menu),
+              onPressed: onMenuTap,
               color: ClientColors.dark,
             ),
+            const SizedBox(width: 8),
+          ],
+
+          // Title
+          Expanded(
+            child: Text(
+              title,
+              style: TextStyle(
+                fontSize: ResponsiveUtils.getFontSize(
+                  context,
+                  mobile: 18,
+                  tablet: 20,
+                  desktop: 24,
+                ),
+                fontWeight: FontWeight.bold,
+                color: ClientColors.dark,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
-          const Spacer(),
           
           // Search bar (conditional)
-          if (showSearch) ...[
+          if (showSearch && !isMobile) ...[
             Container(
-              width: 300,
+              width: isTablet ? 200 : 300,
               height: 40,
               decoration: BoxDecoration(
                 color: Colors.grey.shade100,

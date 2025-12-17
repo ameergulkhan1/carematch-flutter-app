@@ -5,24 +5,32 @@ import '../caregiver_colors.dart';
 import '../../../../../services/notification_service.dart';
 import '../../../../../features/shared/widgets/notification_panel.dart';
 import '../../../../../core/routes/app_routes.dart';
+import '../../../../../shared/utils/responsive_utils.dart';
 
 class CaregiverTopBar extends StatelessWidget {
   final String title;
   final bool showSearch;
   final VoidCallback onLogout;
+  final VoidCallback? onMenuTap;
 
   const CaregiverTopBar({
     super.key,
     required this.title,
     this.showSearch = false,
     required this.onLogout,
+    this.onMenuTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = ResponsiveUtils.isMobile(context);
+    final isTablet = ResponsiveUtils.isTablet(context);
+
     return Container(
-      height: 70,
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      height: isMobile ? 60 : 70,
+      padding: EdgeInsets.symmetric(
+        horizontal: ResponsiveUtils.getContentPadding(context),
+      ),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border(
@@ -31,21 +39,38 @@ class CaregiverTopBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+          // Mobile Menu Button
+          if (isMobile && onMenuTap != null)
+            IconButton(
+              icon: const Icon(Icons.menu),
+              onPressed: onMenuTap,
               color: CaregiverColors.dark,
             ),
+
+          // Title
+          Expanded(
+            child: Text(
+              title,
+              style: TextStyle(
+                fontSize: isMobile ? 18 : (isTablet ? 20 : 22),
+                fontWeight: FontWeight.bold,
+                color: CaregiverColors.dark,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
-          const Spacer(),
-          if (showSearch) ...[
-            _buildSearchBar(),
+
+          // Search bar - hide on mobile
+          if (showSearch && !isMobile) ...[
+            _buildSearchBar(context),
             const SizedBox(width: 16),
           ],
+
+          // Notifications
           _buildNotificationButton(),
           const SizedBox(width: 16),
+
+          // Profile Menu
           _buildProfileMenu(context),
         ],
       ),
@@ -164,9 +189,11 @@ class CaregiverTopBar extends StatelessWidget {
     );
   }
 
-  Widget _buildSearchBar() {
+  Widget _buildSearchBar(BuildContext context) {
+    final isTablet = ResponsiveUtils.isTablet(context);
+
     return Container(
-      width: 300,
+      width: isTablet ? 200 : 300,
       height: 40,
       decoration: BoxDecoration(
         color: CaregiverColors.lightGray,

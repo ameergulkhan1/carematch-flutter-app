@@ -37,7 +37,7 @@ class _AvailabilityPageState extends State<AvailabilityPage> {
       try {
         final doc = await _firestore.collection('users').doc(user.uid).get();
         final data = doc.data();
-        
+
         if (data != null && data['availability'] != null) {
           final availability = data['availability'] as Map<String, dynamic>;
           setState(() {
@@ -126,7 +126,10 @@ class _AvailabilityPageState extends State<AvailabilityPage> {
             ),
           ),
           const SizedBox(height: 16),
-          ..._weekSchedule.asMap().entries.map((entry) => _buildDayCard(entry.key, entry.value)),
+          ..._weekSchedule
+              .asMap()
+              .entries
+              .map((entry) => _buildDayCard(entry.key, entry.value)),
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
@@ -134,12 +137,14 @@ class _AvailabilityPageState extends State<AvailabilityPage> {
             child: ElevatedButton.icon(
               onPressed: _saveAvailability,
               icon: const Icon(Icons.save),
-              label: const Text('Save Availability', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              label: const Text('Save Availability',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: CaregiverColors.primary,
                 foregroundColor: Colors.white,
                 elevation: 2,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
               ),
             ),
           ),
@@ -246,7 +251,8 @@ class _AvailabilityPageState extends State<AvailabilityPage> {
                   day['hours'],
                   style: TextStyle(
                     fontSize: 13,
-                    color: isEnabled ? Colors.grey.shade600 : Colors.grey.shade400,
+                    color:
+                        isEnabled ? Colors.grey.shade600 : Colors.grey.shade400,
                   ),
                 ),
               ],
@@ -264,7 +270,7 @@ class _AvailabilityPageState extends State<AvailabilityPage> {
                 }
               });
             },
-            activeColor: CaregiverColors.success,
+            activeThumbColor: CaregiverColors.success,
           ),
           IconButton(
             icon: const Icon(Icons.edit_outlined, size: 20),

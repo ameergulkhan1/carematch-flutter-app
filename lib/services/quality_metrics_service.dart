@@ -105,8 +105,9 @@ class QualityMetricsService {
         totalRating += review.rating;
 
         // Star distribution
-        if (review.rating >= 4.5) fiveStar++;
-        else if (review.rating >= 3.5) fourStar++;
+        if (review.rating >= 4.5) {
+          fiveStar++;
+        } else if (review.rating >= 3.5) fourStar++;
         else if (review.rating >= 2.5) threeStar++;
         else if (review.rating >= 1.5) twoStar++;
         else oneStar++;

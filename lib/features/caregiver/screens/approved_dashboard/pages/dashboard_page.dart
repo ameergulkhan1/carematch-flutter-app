@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../caregiver_colors.dart';
 import '../../../../../services/enhanced_booking_service.dart';
 import '../../../../../models/booking_model.dart';
+import '../../../../../shared/utils/responsive_utils.dart';
 import 'package:intl/intl.dart';
 
 class DashboardPage extends StatefulWidget {
@@ -41,22 +42,28 @@ class _DashboardPageState extends State<DashboardPage> {
             setState(() {
               _allBookings = bookings;
               _totalBookings = bookings.length;
-              
+
               // Calculate this month's bookings
               final now = DateTime.now();
-              _thisMonthBookings = bookings.where((b) =>
-                  b.startDate.year == now.year && b.startDate.month == now.month).length;
-              
+              _thisMonthBookings = bookings
+                  .where((b) =>
+                      b.startDate.year == now.year &&
+                      b.startDate.month == now.month)
+                  .length;
+
               // Calculate completed bookings
-              _completedBookings = bookings.where((b) =>
-                  b.status == BookingStatus.completed).length;
-              
+              _completedBookings = bookings
+                  .where((b) => b.status == BookingStatus.completed)
+                  .length;
+
               // Get today's bookings
-              _todayBookings = bookings.where((b) =>
-                  b.startDate.year == now.year &&
-                  b.startDate.month == now.month &&
-                  b.startDate.day == now.day).toList();
-              
+              _todayBookings = bookings
+                  .where((b) =>
+                      b.startDate.year == now.year &&
+                      b.startDate.month == now.month &&
+                      b.startDate.day == now.day)
+                  .toList();
+
               _isLoading = false;
             });
           }
@@ -67,7 +74,7 @@ class _DashboardPageState extends State<DashboardPage> {
             .collection('users')
             .doc(user.uid)
             .get();
-        
+
         if (userDoc.exists && mounted) {
           setState(() {
             _averageRating = (userDoc.data()?['rating'] ?? 0.0).toDouble();
@@ -84,79 +91,100 @@ class _DashboardPageState extends State<DashboardPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = ResponsiveUtils.isMobile(context);
+    final padding = ResponsiveUtils.getContentPadding(context);
+
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(CaregiverColors.primary),
+        ),
+      );
     }
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(padding),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildWelcomeCard(),
-          const SizedBox(height: 24),
-          _buildStatsGrid(),
-          const SizedBox(height: 24),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              if (constraints.maxWidth < 900) {
-                return Column(
+          _buildWelcomeCard(isMobile),
+          SizedBox(height: isMobile ? 16 : 24),
+          _buildStatsGrid(isMobile),
+          SizedBox(height: isMobile ? 16 : 24),
+          isMobile
+              ? Column(
                   children: [
-                    _buildRecentBookings(),
+                    _buildRecentBookings(isMobile),
                     const SizedBox(height: 24),
-                    _buildTodaySchedule(),
+                    _buildTodaySchedule(isMobile),
                   ],
-                );
-              }
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: _buildRecentBookings(),
-                  ),
-                  const SizedBox(width: 24),
-                  Expanded(
-                    child: _buildTodaySchedule(),
-                  ),
-                ],
-              );
-            },
-          ),
+                )
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: _buildRecentBookings(isMobile),
+                    ),
+                    const SizedBox(width: 24),
+                    Expanded(
+                      child: _buildTodaySchedule(isMobile),
+                    ),
+                  ],
+                ),
         ],
       ),
     );
   }
 
-  Widget _buildWelcomeCard() {
+  Widget _buildWelcomeCard(bool isMobile) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(isMobile ? 20 : 28),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [CaregiverColors.primary, CaregiverColors.accent],
+        gradient: LinearGradient(
+          colors: [
+            CaregiverColors.primary,
+            CaregiverColors.primaryDark,
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: CaregiverColors.primary.withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Row(
         children: [
-          const Icon(Icons.waving_hand, color: Colors.white, size: 32),
-          const SizedBox(width: 16),
+          Icon(
+            Icons.waving_hand,
+            color: Colors.white,
+            size: isMobile ? 28 : 36,
+          ),
+          SizedBox(width: isMobile ? 12 : 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Welcome back, ${widget.caregiverName}!',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                  style: TextStyle(
                     color: Colors.white,
+                    fontSize: isMobile ? 18 : 24,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 4),
-                const Text(
+                SizedBox(height: isMobile ? 4 : 8),
+                Text(
                   'Ready to make a difference today?',
-                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.9),
+                    fontSize: isMobile ? 13 : 15,
+                  ),
                 ),
               ],
             ),
@@ -166,7 +194,7 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _buildStatsGrid() {
+  Widget _buildStatsGrid(bool isMobile) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final crossAxisCount = constraints.maxWidth < 600 ? 2 : 4;
@@ -218,27 +246,32 @@ class _DashboardPageState extends State<DashboardPage> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.shade100,
-            blurRadius: 10,
+            color: color.withOpacity(0.1),
+            blurRadius: 20,
             offset: const Offset(0, 4),
           ),
         ],
+        border: Border.all(
+          color: color.withOpacity(0.1),
+          width: 1,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
+              gradient: LinearGradient(
+                colors: [color.withOpacity(0.2), color.withOpacity(0.05)],
+              ),
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: color, size: 24),
+            child: Icon(icon, color: color, size: 28),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -249,6 +282,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
                   color: CaregiverColors.dark,
+                  height: 1.2,
                 ),
               ),
               const SizedBox(height: 4),
@@ -256,7 +290,8 @@ class _DashboardPageState extends State<DashboardPage> {
                 label,
                 style: TextStyle(
                   fontSize: 13,
-                  color: Colors.grey.shade600,
+                  color: CaregiverColors.textSecondary,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],
@@ -266,19 +301,22 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _buildRecentBookings() {
+  Widget _buildRecentBookings(bool isMobile) {
     final recentBookings = _allBookings.take(5).toList();
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(isMobile ? 16 : 20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: CaregiverColors.primary.withOpacity(0.1),
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.shade100,
-            blurRadius: 10,
+            color: CaregiverColors.primary.withOpacity(0.05),
+            blurRadius: 20,
             offset: const Offset(0, 4),
           ),
         ],
@@ -289,12 +327,13 @@ class _DashboardPageState extends State<DashboardPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Recent Bookings',
                 style: TextStyle(
-                  fontSize: 18,
+                  fontSize: isMobile ? 16 : 18,
                   fontWeight: FontWeight.bold,
-                  color: CaregiverColors.dark,
+                  color: CaregiverColors.textPrimary,
+                  letterSpacing: -0.3,
                 ),
               ),
               TextButton(
@@ -340,7 +379,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
   Widget _buildBookingItem(BookingModel booking) {
     final statusColor = _getStatusColor(booking.status);
-    
+
     return Row(
       children: [
         Icon(
@@ -390,17 +429,20 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _buildTodaySchedule() {
+  Widget _buildTodaySchedule(bool isMobile) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: CaregiverColors.primary.withOpacity(0.1),
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.shade100,
-            blurRadius: 10,
+            color: CaregiverColors.primary.withOpacity(0.05),
+            blurRadius: 20,
             offset: const Offset(0, 4),
           ),
         ],
@@ -408,12 +450,13 @@ class _DashboardPageState extends State<DashboardPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             "Today's Schedule",
             style: TextStyle(
-              fontSize: 18,
+              fontSize: isMobile ? 16 : 18,
               fontWeight: FontWeight.bold,
-              color: CaregiverColors.dark,
+              color: CaregiverColors.textPrimary,
+              letterSpacing: -0.3,
             ),
           ),
           const SizedBox(height: 20),

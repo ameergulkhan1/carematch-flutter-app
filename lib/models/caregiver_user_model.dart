@@ -13,6 +13,8 @@ class CaregiverUser {
   final String city;
   final String state;
   final String zipCode;
+  final double? latitude;
+  final double? longitude;
   
   // Professional Information
   final String? yearsOfExperience;
@@ -50,6 +52,8 @@ class CaregiverUser {
     required this.city,
     required this.state,
     required this.zipCode,
+    this.latitude,
+    this.longitude,
     this.yearsOfExperience,
     this.specializations = const [],
     this.bio,
@@ -79,6 +83,8 @@ class CaregiverUser {
       'city': city,
       'state': state,
       'zipCode': zipCode,
+      'latitude': latitude,
+      'longitude': longitude,
       'yearsOfExperience': yearsOfExperience,
       'specializations': specializations,
       'bio': bio,
@@ -110,6 +116,8 @@ class CaregiverUser {
       city: data['city'] ?? '',
       state: data['state'] ?? '',
       zipCode: data['zipCode'] ?? '',
+      latitude: data['latitude']?.toDouble(),
+      longitude: data['longitude']?.toDouble(),
       yearsOfExperience: data['yearsOfExperience'],
       specializations: List<String>.from(data['specializations'] ?? []),
       bio: data['bio'],
@@ -139,6 +147,8 @@ class CaregiverUser {
     String? city,
     String? state,
     String? zipCode,
+    double? latitude,
+    double? longitude,
     String? yearsOfExperience,
     List<String>? specializations,
     String? bio,
@@ -165,6 +175,8 @@ class CaregiverUser {
       city: city ?? this.city,
       state: state ?? this.state,
       zipCode: zipCode ?? this.zipCode,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
       yearsOfExperience: yearsOfExperience ?? this.yearsOfExperience,
       specializations: specializations ?? this.specializations,
       bio: bio ?? this.bio,

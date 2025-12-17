@@ -501,7 +501,7 @@ class BillingService {
     return _firestore
         .collection('bills')
         .where('clientId', isEqualTo: clientId)
-        .orderBy('generatedAt', descending: true)
+        .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => Bill.fromMap(doc.data(), doc.id))
@@ -513,7 +513,7 @@ class BillingService {
     return _firestore
         .collection('bills')
         .where('caregiverId', isEqualTo: caregiverId)
-        .orderBy('generatedAt', descending: true)
+        .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => Bill.fromMap(doc.data(), doc.id))
@@ -525,7 +525,19 @@ class BillingService {
     return _firestore
         .collection('invoices')
         .where('clientId', isEqualTo: clientId)
-        .orderBy('issueDate', descending: true)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => Invoice.fromMap(doc.data(), doc.id))
+            .toList());
+  }
+
+  /// Get invoices for caregiver
+  Stream<List<Invoice>> getCaregiverInvoices(String caregiverId) {
+    return _firestore
+        .collection('invoices')
+        .where('caregiverId', isEqualTo: caregiverId)
+        .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => Invoice.fromMap(doc.data(), doc.id))

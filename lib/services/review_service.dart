@@ -375,4 +375,51 @@ class ReviewService {
       return false;
     }
   }
+
+  /// Hide review (admin action)
+  Future<bool> hideReview(String reviewId) async {
+    try {
+      await _firestore.collection('reviews').doc(reviewId).update({
+        'isVisible': false,
+        'moderatedAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      return true;
+    } catch (e) {
+      print('Error hiding review: $e');
+      return false;
+    }
+  }
+
+  /// Approve review (admin action)
+  Future<bool> approveReview(String reviewId) async {
+    try {
+      await _firestore.collection('reviews').doc(reviewId).update({
+        'isVisible': true,
+        'isFlagged': false,
+        'moderatedAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      return true;
+    } catch (e) {
+      print('Error approving review: $e');
+      return false;
+    }
+  }
+
+  /// Unflag review (admin action)
+  Future<bool> unflagReview(String reviewId) async {
+    try {
+      await _firestore.collection('reviews').doc(reviewId).update({
+        'isFlagged': false,
+        'flagReason': null,
+        'moderatedAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      return true;
+    } catch (e) {
+      print('Error unflagging review: $e');
+      return false;
+    }
+  }
 }

@@ -5,7 +5,7 @@ import '../models/client_user_model.dart';
 
 class AuthProvider with ChangeNotifier {
   final AuthService _authService = AuthService();
-  
+
   User? _firebaseUser;
   ClientUser? _clientUser;
   bool _isLoading = false;
@@ -68,7 +68,7 @@ class AuthProvider with ChangeNotifier {
     );
 
     _isLoading = false;
-    
+
     if (result['success']) {
       // User will be loaded automatically via auth state listener
       notifyListeners();
@@ -78,36 +78,6 @@ class AuthProvider with ChangeNotifier {
       notifyListeners();
       return false;
     }
-  }
-
-  // Send OTP
-  Future<bool> sendOTP(String email, String name) async {
-    print('🔵 AuthProvider.sendOTP called for: $email');
-    _isLoading = true;
-    _errorMessage = null;
-    notifyListeners();
-
-    final success = await _authService.sendOTPEmail(email, name);
-
-    _isLoading = false;
-    if (!success) {
-      _errorMessage = 'Failed to send OTP. Please try again.';
-      print('🔴 AuthProvider.sendOTP failed');
-    } else {
-      print('🟢 AuthProvider.sendOTP succeeded');
-    }
-    notifyListeners();
-    return success;
-  }
-
-  // Verify OTP
-  Future<bool> verifyOTP(String email, String otp) async {
-    final isValid = await _authService.verifyOTP(email, otp);
-    if (isValid && _firebaseUser != null) {
-      await _authService.markEmailAsVerified(_firebaseUser!.uid);
-      await _loadClientUser(_firebaseUser!.uid);
-    }
-    return isValid;
   }
 
   // Sign in
@@ -151,7 +121,7 @@ class AuthProvider with ChangeNotifier {
     final result = await _authService.sendPasswordResetEmail(email);
 
     _isLoading = false;
-    
+
     if (!result['success']) {
       _errorMessage = result['message'];
     }
@@ -189,7 +159,8 @@ class AuthProvider with ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    final success = await _authService.updateClientProfile(_firebaseUser!.uid, updates);
+    final success =
+        await _authService.updateClientProfile(_firebaseUser!.uid, updates);
 
     if (success) {
       await _loadClientUser(_firebaseUser!.uid);

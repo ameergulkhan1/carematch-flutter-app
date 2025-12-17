@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../../services/auth_service.dart';
 import '../caregiver_colors.dart';
+import '../../../../../shared/utils/responsive_utils.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -15,8 +16,11 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = ResponsiveUtils.isMobile(context);
+    final padding = ResponsiveUtils.getContentPadding(context);
+
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(padding),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -40,7 +44,7 @@ class _SettingsPageState extends State<SettingsPage> {
               () {},
             ),
           ]),
-          const SizedBox(height: 24),
+          SizedBox(height: isMobile ? 16 : 24),
           _buildSection('App Settings', [
             _buildSettingsTile(
               Icons.language_outlined,
@@ -60,11 +64,11 @@ class _SettingsPageState extends State<SettingsPage> {
                     _darkMode = value;
                   });
                 },
-                activeThumbColor: CaregiverColors.primary,
+                activeColor: CaregiverColors.primary,
               ),
             ),
           ]),
-          const SizedBox(height: 24),
+          SizedBox(height: isMobile ? 16 : 24),
           _buildSection('Support', [
             _buildSettingsTile(
               Icons.help_outline,
@@ -79,7 +83,7 @@ class _SettingsPageState extends State<SettingsPage> {
               () {},
             ),
           ]),
-          const SizedBox(height: 24),
+          SizedBox(height: isMobile ? 16 : 24),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
@@ -89,7 +93,7 @@ class _SettingsPageState extends State<SettingsPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: CaregiverColors.danger,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
+                padding: EdgeInsets.symmetric(vertical: isMobile ? 12 : 14),
               ),
             ),
           ),
@@ -151,7 +155,8 @@ class _SettingsPageState extends State<SettingsPage> {
           subtitle,
           style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
         ),
-        trailing: trailing ?? const Icon(Icons.chevron_right, color: Colors.grey),
+        trailing:
+            trailing ?? const Icon(Icons.chevron_right, color: Colors.grey),
         onTap: onTap,
       ),
     );

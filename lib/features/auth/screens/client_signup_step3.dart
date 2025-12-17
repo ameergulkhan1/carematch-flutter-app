@@ -1,14 +1,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_text_styles.dart';
-import '../../../core/constants/app_config.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../shared/widgets/buttons.dart';
 
+/// Client Sign Up - Step 3: Email Verification
+/// Uses Firebase's native email verification instead of OTP
 class ClientSignUpStep3 extends StatefulWidget {
   final String email;
   final String fullName;
@@ -24,38 +24,25 @@ class ClientSignUpStep3 extends StatefulWidget {
 }
 
 class _ClientSignUpStep3State extends State<ClientSignUpStep3> {
-  final List<TextEditingController> _otpControllers = List.generate(
-    AppConfig.otpLength,
-    (_) => TextEditingController(),
-  );
-  final List<FocusNode> _otpFocusNodes = List.generate(
-    AppConfig.otpLength,
-    (_) => FocusNode(),
-  );
-
-  bool _isVerifying = false;
+  bool _isChecking = false;
   bool _isResending = false;
   int _resendCountdown = 60;
   Timer? _timer;
+  Timer? _verificationCheckTimer;
 
   @override
   void initState() {
     super.initState();
-    // Schedule OTP sending after the first frame to avoid setState during build
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _sendOTP();
+      _sendVerificationEmail();
+      _startVerificationCheck();
     });
   }
 
   @override
   void dispose() {
-    for (var controller in _otpControllers) {
-      controller.dispose();
-    }
-    for (var node in _otpFocusNodes) {
-      node.dispose();
-    }
     _timer?.cancel();
+    _verificationCheckTimer?.cancel();
     super.dispose();
   }
 
@@ -73,105 +60,76 @@ class _ClientSignUpStep3State extends State<ClientSignUpStep3> {
     });
   }
 
-  Future<void> _sendOTP() async {
-    print('🟡 ClientSignupStep3._sendOTP called for email: ${widget.email}, name: ${widget.fullName}');
-    
+  void _startVerificationCheck() {
+    // Check verification status every 3 seconds
+    _verificationCheckTimer = Timer.periodic(
+      const Duration(seconds: 3),
+      (timer) async {
+        if (!mounted) {
+          timer.cancel();
+          return;
+        }
+        await _checkVerification();
+      },
+    );
+  }
+
+  Future<void> _sendVerificationEmail() async {
+    print(
+        '🟡 ClientSignupStep3: Sending verification email to ${widget.email}');
+
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    
+
     setState(() {
       _isResending = true;
     });
 
-    final success = await authProvider.sendOTP(widget.email, widget.fullName);
+    await authProvider.sendEmailVerification();
 
     setState(() {
       _isResending = false;
     });
 
-    if (success) {
-      print('✅ ClientSignupStep3: OTP sent successfully');
-      _startCountdown();
-      if (mounted) {
-        // Show different message based on EmailJS configuration
-        final message = AppConfig.emailJsPublicKey.isEmpty
-            ? 'Verification code generated! Check the console/terminal for the code.'
-            : 'Verification code sent to your email';
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(message),
-            backgroundColor: AppColors.success,
-            duration: const Duration(seconds: 4),
-          ),
-        );
-      }
-    } else {
-      print('❌ ClientSignupStep3: OTP sending failed');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to send verification code. Please try again.'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
+    _startCountdown();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Verification email sent! Please check your inbox.'),
+          backgroundColor: AppColors.success,
+          duration: Duration(seconds: 4),
+        ),
+      );
     }
   }
 
-  void _verifyOTP() async {
-    final otp = _otpControllers.map((c) => c.text).join();
-    
-    if (otp.length != AppConfig.otpLength) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter the complete verification code'),
-          backgroundColor: AppColors.warning,
-        ),
-      );
-      return;
-    }
+  Future<void> _checkVerification() async {
+    if (_isChecking) return;
 
     setState(() {
-      _isVerifying = true;
+      _isChecking = true;
     });
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final isValid = await authProvider.verifyOTP(widget.email, otp);
+    final isVerified = await authProvider.checkEmailVerified();
 
     setState(() {
-      _isVerifying = false;
+      _isChecking = false;
     });
 
-    if (isValid) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Email verified successfully!'),
-            backgroundColor: AppColors.success,
-          ),
-        );
+    if (isVerified) {
+      _verificationCheckTimer?.cancel();
 
-        // Navigate to client dashboard
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          AppRoutes.clientDashboard,
-          (route) => false,
-        );
-      }
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Invalid or expired verification code'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-        // Clear OTP fields
-        for (var controller in _otpControllers) {
-          controller.clear();
-        }
-        _otpFocusNodes[0].requestFocus();
-      }
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Email verified successfully!'),
+          backgroundColor: AppColors.success,
+          duration: Duration(seconds: 2),
+        ),
+      );
+
+      Navigator.pushReplacementNamed(context, AppRoutes.clientDashboard);
     }
   }
 
@@ -188,7 +146,7 @@ class _ClientSignUpStep3State extends State<ClientSignUpStep3> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Icon
+                  // Email Icon
                   Center(
                     child: Container(
                       width: 100,
@@ -198,7 +156,7 @@ class _ClientSignUpStep3State extends State<ClientSignUpStep3> {
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
-                        Icons.email_outlined,
+                        Icons.mark_email_unread_outlined,
                         color: AppColors.primary,
                         size: 50,
                       ),
@@ -214,8 +172,9 @@ class _ClientSignUpStep3State extends State<ClientSignUpStep3> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'We\'ve sent a ${AppConfig.otpLength}-digit verification code to',
-                    style: AppTextStyles.bodyLarge.copyWith(color: AppColors.textSecondary),
+                    'We\'ve sent a verification link to:',
+                    style: AppTextStyles.bodyLarge
+                        .copyWith(color: AppColors.textSecondary),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 4),
@@ -266,83 +225,102 @@ class _ClientSignUpStep3State extends State<ClientSignUpStep3> {
                   const SizedBox(height: 8),
                   Text(
                     'Step 3 of 3: Email Verification',
-                    style: AppTextStyles.labelMedium.copyWith(color: AppColors.textSecondary),
+                    style: AppTextStyles.labelMedium
+                        .copyWith(color: AppColors.textSecondary),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 48),
 
-                  // OTP Input Fields
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(
-                      AppConfig.otpLength,
-                      (index) => Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: SizedBox(
-                          width: 50,
-                          height: 60,
-                          child: TextField(
-                            controller: _otpControllers[index],
-                            focusNode: _otpFocusNodes[index],
-                            textAlign: TextAlign.center,
-                            keyboardType: TextInputType.number,
-                            maxLength: 1,
-                            style: AppTextStyles.headlineMedium,
-                            decoration: InputDecoration(
-                              counterText: '',
-                              filled: true,
-                              fillColor: AppColors.backgroundLight,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: AppColors.border),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: AppColors.border),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                  // Instructions Card
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.grey.shade200),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.info_outline,
+                              color: AppColors.primary,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'What to do next:',
+                              style: AppTextStyles.titleSmall.copyWith(
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
-                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                            onChanged: (value) {
-                              if (value.isNotEmpty && index < AppConfig.otpLength - 1) {
-                                _otpFocusNodes[index + 1].requestFocus();
-                              } else if (value.isEmpty && index > 0) {
-                                _otpFocusNodes[index - 1].requestFocus();
-                              }
-                              
-                              // Auto-verify when all digits entered
-                              if (index == AppConfig.otpLength - 1 && value.isNotEmpty) {
-                                final allFilled = _otpControllers.every((c) => c.text.isNotEmpty);
-                                if (allFilled) {
-                                  _verifyOTP();
-                                }
-                              }
-                            },
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        _buildStep('1', 'Check your email inbox'),
+                        const SizedBox(height: 12),
+                        _buildStep('2', 'Click the verification link'),
+                        const SizedBox(height: 12),
+                        _buildStep('3', 'Return to this page'),
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.mail_outline,
+                                size: 16,
+                                color: Colors.amber,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Check your spam folder if you don\'t see the email',
+                                  style: AppTextStyles.bodySmall.copyWith(
+                                    color: Colors.amber.shade900,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 32),
 
-                  // Verify Button
+                  // Check Verification Button
                   PrimaryButton(
-                    text: 'Verify Email',
-                    onPressed: _verifyOTP,
-                    isLoading: _isVerifying,
+                    text: 'I\'ve Verified My Email',
+                    onPressed: _isChecking
+                        ? null
+                        : () {
+                            _checkVerification();
+                          },
+                    isLoading: _isChecking,
                     icon: Icons.verified_user,
                   ),
                   const SizedBox(height: 24),
 
-                  // Resend Code
+                  // Resend Email
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        'Didn\'t receive the code? ',
+                        'Didn\'t receive the email? ',
                         style: AppTextStyles.bodyMedium.copyWith(
                           color: AppColors.textSecondary,
                         ),
@@ -356,26 +334,21 @@ class _ClientSignUpStep3State extends State<ClientSignUpStep3> {
                         )
                       else
                         TextButton(
-                          onPressed: _isResending ? null : _sendOTP,
-                          child: _isResending
-                              ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : Text(
-                                  'Resend',
-                                  style: AppTextStyles.labelLarge.copyWith(
-                                    color: AppColors.primary,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
+                          onPressed:
+                              _isResending ? null : _sendVerificationEmail,
+                          child: Text(
+                            'Resend Email',
+                            style: AppTextStyles.labelLarge.copyWith(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
 
-                  // Skip for now (for testing)
+                  // Skip Button
                   TextButton(
                     onPressed: () {
                       Navigator.pushNamedAndRemoveUntil(
@@ -397,6 +370,38 @@ class _ClientSignUpStep3State extends State<ClientSignUpStep3> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildStep(String number, String text) {
+    return Row(
+      children: [
+        Container(
+          width: 24,
+          height: 24,
+          decoration: const BoxDecoration(
+            color: AppColors.primary,
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: Text(
+              number,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            text,
+            style: AppTextStyles.bodyMedium,
+          ),
+        ),
+      ],
     );
   }
 }

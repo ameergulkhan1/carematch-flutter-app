@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart' hide Transaction;
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../models/transaction_model.dart' as txn;
-import '../models/invoice_model.dart' hide PaymentMethod;
 import '../models/bill_model.dart';
 
 class PaymentService {
@@ -10,8 +9,9 @@ class PaymentService {
 
   // TODO: Store these securely in environment variables or Firebase Remote Config
   static const String _stripeSecretKey = 'sk_test_YOUR_STRIPE_KEY';
-  static const String _paystackSecretKey = 'sk_test_YOUR_PAYSTACK_KEY';
-  static const String _fawryMerchantCode = 'YOUR_FAWRY_MERCHANT_CODE';
+  // Reserved for future payment provider integration
+  // static const String _paystackSecretKey = 'sk_test_YOUR_PAYSTACK_KEY';
+  // static const String _fawryMerchantCode = 'YOUR_FAWRY_MERCHANT_CODE';
 
   // Platform fee configuration
   static const double _platformFeePercentage = 15.0; // 15% platform fee

@@ -311,7 +311,7 @@ class _SessionExecutionScreenState extends State<SessionExecutionScreen> {
                 label: const Text('Add Photo'),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  side: BorderSide(color: AppColors.primary),
+                  side: const BorderSide(color: AppColors.primary),
                 ),
               ),
 

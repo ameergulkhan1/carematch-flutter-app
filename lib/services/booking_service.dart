@@ -1,6 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/booking_model.dart';
 
+/// @deprecated Use EnhancedBookingService instead
+/// This service will be removed in a future version
+/// Old booking service - replaced by EnhancedBookingService which implements the full 13-stage booking flow
+@Deprecated('Use EnhancedBookingService instead. This will be removed in a future version.')
 class BookingService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 

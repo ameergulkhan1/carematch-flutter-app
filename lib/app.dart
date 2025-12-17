@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'core/theme/app_theme.dart';
 import 'core/routes/app_routes.dart';
@@ -49,6 +50,18 @@ class CareMatchApp extends StatelessWidget {
       child: MaterialApp(
         title: 'CareMatch',
         debugShowCheckedModeBanner: false,
+        
+        // Localization support
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [
+          Locale('en', ''), // English
+          Locale('ar', ''), // Arabic
+        ],
+        
         theme: AppTheme.lightTheme,
         initialRoute: AppRoutes.landing,
         routes: {

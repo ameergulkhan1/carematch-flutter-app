@@ -32,7 +32,8 @@ class CaregiverService {
       if (existingRole != null && existingRole != 'caregiver') {
         return {
           'success': false,
-          'message': 'This email is already registered as a $existingRole. Please use a different email or login as $existingRole.'
+          'message':
+              'This email is already registered as a $existingRole. Please use a different email or login as $existingRole.'
         };
       }
 
@@ -67,7 +68,14 @@ class CaregiverService {
         updatedAt: DateTime.now(),
       );
 
-      await _firestore.collection('users').doc(user.uid).set(caregiverUser.toFirestore());
+      await _firestore
+          .collection('users')
+          .doc(user.uid)
+          .set(caregiverUser.toFirestore());
+
+      // Send verification email automatically
+      await user.sendEmailVerification();
+      print('✅ Verification email sent to $email');
 
       return {
         'success': true,
@@ -136,21 +144,15 @@ class CaregiverService {
       const maxSize = 5 * 1024 * 1024; // 5MB
       final fileSize = file.size;
       if (fileSize > maxSize) {
-        return {
-          'success': false,
-          'message': 'File size must be less than 5MB'
-        };
+        return {'success': false, 'message': 'File size must be less than 5MB'};
       }
 
       // For web, we'll store the file in Firestore as base64
       // This allows viewing from any device with proper authentication
-      
+
       Uint8List? fileBytes = file.bytes;
       if (fileBytes == null) {
-        return {
-          'success': false,
-          'message': 'Could not read file data'
-        };
+        return {'success': false, 'message': 'Could not read file data'};
       }
 
       // Store document with base64 encoding
@@ -170,7 +172,7 @@ class CaregiverService {
       }
 
       final docId = storageResult['docId'];
-      
+
       print('✓ Document stored in Firestore: $docId');
 
       // Update user's documents map with docId
@@ -180,7 +182,11 @@ class CaregiverService {
       });
 
       // Log document upload
-      await _firestore.collection('users').doc(uid).collection('document_history').add({
+      await _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('document_history')
+          .add({
         'documentType': documentType,
         'fileName': file.name,
         'fileSize': fileSize,
@@ -198,10 +204,7 @@ class CaregiverService {
       };
     } catch (e) {
       print('Error uploading document: $e');
-      return {
-        'success': false,
-        'message': 'Upload failed: ${e.toString()}'
-      };
+      return {'success': false, 'message': 'Upload failed: ${e.toString()}'};
     }
   }
 
@@ -254,15 +257,16 @@ class CaregiverService {
     try {
       // Get document path from Firestore
       final userDoc = await _firestore.collection('users').doc(uid).get();
-      final documents = Map<String, String>.from(userDoc.data()?['documents'] ?? {});
-      
+      final documents =
+          Map<String, String>.from(userDoc.data()?['documents'] ?? {});
+
       if (!documents.containsKey(documentType)) {
         return false;
       }
 
       // For web compatibility, we only remove metadata from Firestore
       // In production with a backend, you'd call an API to delete the actual file
-      
+
       // Remove from Firestore
       await _firestore.collection('users').doc(uid).update({
         'documents.$documentType': FieldValue.delete(),

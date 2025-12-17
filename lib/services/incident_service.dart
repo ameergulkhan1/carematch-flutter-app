@@ -521,7 +521,9 @@ class IncidentService {
         if (status == IncidentStatus.resolved.name) resolved++;
         if (status == IncidentStatus.submitted.name ||
             status == IncidentStatus.underReview.name ||
-            status == IncidentStatus.investigating.name) pending++;
+            status == IncidentStatus.investigating.name) {
+          pending++;
+        }
         if (severity == IncidentSeverity.critical.name) critical++;
         if (status == IncidentStatus.escalated.name) escalated++;
 

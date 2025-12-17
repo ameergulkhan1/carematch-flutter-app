@@ -72,32 +72,32 @@ class CaregiverProvider with ChangeNotifier {
     }
   }
 
-  /// Send OTP for email verification
-  Future<bool> sendOTP(String email, String fullName) async {
-    print('🔵 CaregiverProvider.sendOTP called for: $email');
+  /// Send email verification (replaces OTP)
+  Future<bool> sendEmailVerification() async {
+    print('🔵 CaregiverProvider.sendEmailVerification called');
     _isLoading = true;
     notifyListeners();
 
-    final success = await _authService.sendOTPEmail(email, fullName);
+    final success = await _authService.sendEmailVerification();
 
     _isLoading = false;
     notifyListeners();
-    
+
     if (success) {
-      print('🟢 CaregiverProvider.sendOTP succeeded');
+      print('🟢 CaregiverProvider.sendEmailVerification succeeded');
     } else {
-      print('🔴 CaregiverProvider.sendOTP failed');
+      print('🔴 CaregiverProvider.sendEmailVerification failed');
     }
-    
+
     return success;
   }
 
-  /// Verify OTP
-  Future<bool> verifyOTP(String email, String otp) async {
+  /// Check email verification status
+  Future<bool> checkEmailVerified() async {
     _isLoading = true;
     notifyListeners();
 
-    final success = await _authService.verifyOTP(email, otp);
+    final success = await _authService.checkEmailVerified();
 
     if (success) {
       // Mark email as verified
@@ -157,7 +157,8 @@ class CaregiverProvider with ChangeNotifier {
     );
 
     if (result['success'] == true) {
-      _uploadedDocuments[documentType] = result['filePath']; // Store file path instead of URL
+      _uploadedDocuments[documentType] =
+          result['filePath']; // Store file path instead of URL
       _uploadProgress[documentType] = 1.0;
       notifyListeners();
       return true;
@@ -209,7 +210,8 @@ class CaregiverProvider with ChangeNotifier {
 
     _currentCaregiver = await _caregiverService.getCaregiverProfile(user.uid);
     if (_currentCaregiver != null) {
-      _uploadedDocuments = Map<String, String>.from(_currentCaregiver!.documents);
+      _uploadedDocuments =
+          Map<String, String>.from(_currentCaregiver!.documents);
     }
     notifyListeners();
   }
