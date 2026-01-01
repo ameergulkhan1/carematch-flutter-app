@@ -1,0 +1,43 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+class VerificationRequest {
+  final String caretakerId;
+  final List<String> documents;
+  final String status; // 'pending', 'approved', 'rejected'
+  final DateTime submittedAt;
+  final DateTime? reviewedAt;
+  final String? adminNotes;
+
+  VerificationRequest({
+    required this.caretakerId,
+    required this.documents,
+    required this.status,
+    required this.submittedAt,
+    this.reviewedAt,
+    this.adminNotes,
+  });
+
+  factory VerificationRequest.fromMap(Map<String, dynamic> map) {
+    return VerificationRequest(
+      caretakerId: map['caretakerId'] as String,
+      documents: List<String>.from(map['documents']),
+      status: map['status'] as String,
+      submittedAt: (map['submittedAt'] as Timestamp).toDate(),
+      reviewedAt: map['reviewedAt'] != null
+          ? (map['reviewedAt'] as Timestamp).toDate()
+          : null,
+      adminNotes: map['adminNotes'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'caretakerId': caretakerId,
+      'documents': documents,
+      'status': status,
+      'submittedAt': Timestamp.fromDate(submittedAt),
+      'reviewedAt': reviewedAt != null ? Timestamp.fromDate(reviewedAt!) : null,
+      'adminNotes': adminNotes,
+    };
+  }
+}

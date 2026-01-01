@@ -1,0 +1,80 @@
+name: carematch_app
+description: "CareMatch - Trusted Caretaker Services Platform"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # Firebase
+  firebase_core: ^2.24.0
+  firebase_auth: ^4.17.3
+  cloud_firestore: ^4.13.4
+  firebase_storage: ^11.5.3
+  cloud_functions: ^4.5.3
+  google_sign_in: ^6.2.1
+
+  # State Management
+  provider: ^6.1.1
+
+  # UI Components
+  cupertino_icons: ^1.0.6
+  google_fonts: ^6.1.0
+  webview_flutter: ^4.4.2
+  fl_chart: ^0.66.0
+  flutter_svg: ^2.0.10+1
+  http: ^1.1.0
+
+  # Utils
+  image_picker: ^1.0.4
+  file_picker: ^6.1.1
+  intl: 0.20.2
+  path: ^1.8.3
+  uuid: ^4.2.1
+  firebase_messaging: ^14.9.4
+  flutter_local_notifications: ^19.5.0
+  shared_preferences: ^2.2.2
+  crypto: ^3.0.3
+  google_maps_flutter: ^2.14.0
+  geolocator: ^12.0.0
+  flutter_dotenv: ^6.0.0
+  table_calendar: ^3.0.9
+  pdf: ^3.10.7
+  equatable: ^2.0.5
+  dartz: ^0.10.1
+  logger: ^2.0.2
+  get_it: ^7.6.0
+  injectable: ^2.3.2
+  flutter_riverpod: ^2.4.9
+  connectivity_plus: ^5.0.2
+  dio: ^5.4.0
+  freezed_annotation: ^2.4.1
+  json_annotation: ^4.8.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  build_runner: ^2.4.7
+  injectable_generator: ^2.4.1
+  freezed: ^2.4.6
+  json_serializable: ^6.7.1
+  mockito: ^5.4.4
+  fake_cloud_firestore: ^2.5.2
+
+flutter:
+  uses-material-design: true
+  generate: true
+
+  assets:
+    - assets/images/splash/
+    - assets/images/caretaker_user/
+    - assets/images/admin/
+    - assets/images/icons/
+
