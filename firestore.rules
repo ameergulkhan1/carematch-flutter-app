@@ -1,0 +1,420 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ============================================
+    // HELPER FUNCTIONS
+    // ============================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function getUserData() {
+      return isAuthenticated() ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data : null;
+    }
+    
+    function hasRole(role) {
+      return isAuthenticated() && getUserData() != null && getUserData().role == role;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && getUserData() != null && getUserData().role == 'admin';
+    }
+    
+    function isCaretaker() {
+      return isAuthenticated() && getUserData() != null && getUserData().role == 'caretaker';
+    }
+    
+    function isOwner(uid) {
+      return isAuthenticated() && request.auth.uid == uid;
+    }
+    
+    // ============================================
+    // USERS COLLECTION
+    // ============================================
+    match /users/{userId} {
+      // Allow admin to read all users
+      // Allow caretakers to read their own profile
+      allow read: if isAdmin() || isOwner(userId);
+      
+      // Allow authenticated users to create their own user document during signup
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      
+      // Admin can update any user, users can update their own profile
+      allow update: if isAdmin() || isOwner(userId);
+      
+      // Only admin can delete users
+      allow delete: if isAdmin();
+      
+      // Onboarding subcollection
+      match /onboarding/{document} {
+        // Users can read/write their own onboarding state
+        allow read, write: if isAuthenticated() && request.auth.uid == userId;
+      }
+    }
+    
+    // ============================================
+    // CARETAKER PROFILES COLLECTION
+    // ============================================
+    match /caretaker_profiles/{profileId} {
+      // PUBLIC READ - Anyone can search and view caretaker profiles
+      allow read: if true;
+      
+      // Authenticated users can create their own caretaker profile during signup
+      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.userId;
+      
+      // Caretakers can update their own profile, admin can update any
+      allow update: if isAdmin() || (isAuthenticated() && request.auth.uid == resource.data.userId);
+      
+      // Only admin can delete profiles
+      allow delete: if isAdmin();
+    }
+    
+    // ============================================
+    // BOOKINGS COLLECTION
+    // ============================================
+    match /bookings/{bookingId} {
+      // PUBLIC READ - Anyone can view bookings (needed for search/booking flow)
+      // Admin can read all bookings
+      // Caretakers can read their own bookings
+      allow read: if true || isAdmin() || (isCaretaker() && request.auth.uid == resource.data.caretakerId);
+      
+      // PUBLIC CREATE - Anyone can create a booking (no login required for families)
+      allow create: if true;
+      
+      // Admin can update any booking
+      // Caretakers can update their own bookings
+      allow update: if isAdmin() || (isCaretaker() && request.auth.uid == resource.data.caretakerId);
+      
+      // Only admin can delete bookings
+      allow delete: if isAdmin();
+    }
+    
+    // ============================================
+    // REVIEWS COLLECTION
+    // ============================================
+    match /reviews/{reviewId} {
+      // PUBLIC READ - Anyone can view reviews
+      allow read: if true;
+      
+      // PUBLIC CREATE - Anyone can create a review (no login required)
+      allow create: if true;
+      
+      // Admin can update any review
+      allow update: if isAdmin();
+      
+      // Admin can delete any review
+      allow delete: if isAdmin();
+    }
+    
+    // ============================================
+    // NOTIFICATIONS COLLECTION
+    // ============================================
+    match /notifications/{notificationId} {
+      // Users can read their own notifications
+      allow read: if isAuthenticated() && request.auth.uid == resource.data.userId;
+      
+      // System/Admin can create notifications
+      allow create: if isAdmin() || isAuthenticated();
+      
+      // Users can update their own notifications (mark as read)
+      allow update: if isAuthenticated() && request.auth.uid == resource.data.userId;
+      
+      // Users can delete their own notifications
+      allow delete: if isAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+    
+    // ============================================
+    // VERIFICATIONS COLLECTION
+    // ============================================
+    match /verifications/{verificationId} {
+      // Admin can read all verifications
+      // Caretakers can read their own verification requests
+      allow read: if isAdmin() || (isCaretaker() && request.auth.uid == resource.data.caretakerId);
+      
+      // Caretakers can create verification requests
+      allow create: if isCaretaker() && request.auth.uid == request.resource.data.caretakerId;
+      
+      // Admin can update verifications (approve/reject)
+      // Caretakers can update their own pending requests
+      allow update: if isAdmin() || (isCaretaker() && request.auth.uid == resource.data.caretakerId && resource.data.status == 'pending');
+      
+      // Only admin can delete verifications
+      allow delete: if isAdmin();
+    }
+    
+    // ============================================
+    // CHATS COLLECTION
+    // ============================================
+    match /chats/{chatId} {
+      // Participants can read their own chats
+      allow read: if isAuthenticated() && request.auth.uid in resource.data.participantIds;
+      
+      // Authenticated users can create chats
+      allow create: if isAuthenticated() && request.auth.uid in request.resource.data.participantIds;
+      
+      // Participants can update their own chats
+      allow update: if isAuthenticated() && request.auth.uid in resource.data.participantIds;
+      
+      // Participants can delete their own chats
+      allow delete: if isAuthenticated() && request.auth.uid in resource.data.participantIds;
+      
+      // Messages subcollection
+      match /messages/{messageId} {
+        allow read: if isAuthenticated() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participantIds;
+        allow create: if isAuthenticated() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participantIds;
+        allow update: if isAuthenticated() && request.auth.uid == resource.data.senderId;
+        allow delete: if isAdmin();
+      }
+    }
+    
+    // ============================================
+    // CARE PLANS COLLECTION
+    // ============================================
+    match /care_plans/{planId} {
+      // Admin can read all care plans
+      // Caretakers can read care plans for their bookings
+      allow read: if isAdmin() || (isCaretaker() && request.auth.uid == resource.data.caretakerId);
+      
+      // Admin can create care plans
+      // Caretakers can create care plans for their bookings
+      allow create: if isAdmin() || (isCaretaker() && request.auth.uid == request.resource.data.caretakerId);
+      
+      // Admin can update any care plan
+      // Caretakers can update their own care plans
+      allow update: if isAdmin() || (isCaretaker() && request.auth.uid == resource.data.caretakerId);
+      
+      // Only admin can delete care plans
+      allow delete: if isAdmin();
+    }
+    
+    // ============================================
+    // PAYMENTS COLLECTION
+    // ============================================
+    match /payments/{paymentId} {
+      // Admin can read all payments
+      // Caretakers can read their own payments
+      allow read: if isAdmin() || (isCaretaker() && request.auth.uid == resource.data.caretakerId);
+      
+      // PUBLIC CREATE - Anyone can create a payment (for booking flow)
+      allow create: if true;
+      
+      // Admin can update any payment
+      allow update: if isAdmin();
+      
+      // Only admin can delete payments
+      allow delete: if isAdmin();
+    }
+    
+    // ============================================
+    // AVAILABILITY COLLECTION
+    // ============================================
+    match /availability/{availabilityId} {
+      // PUBLIC READ - Anyone can view caretaker availability
+      allow read: if true;
+      
+      // Caretakers can create their own availability
+      allow create: if isCaretaker() && request.auth.uid == request.resource.data.caretakerId;
+      
+      // Admin can update any availability
+      // Caretakers can update their own availability
+      allow update: if isAdmin() || (isCaretaker() && request.auth.uid == resource.data.caretakerId);
+      
+      // Admin can delete any availability
+      // Caretakers can delete their own availability
+      allow delete: if isAdmin() || (isCaretaker() && request.auth.uid == resource.data.caretakerId);
+    }
+    
+    // ============================================
+    // AUDIT LOGS COLLECTION
+    // ============================================
+    match /audit_logs/{logId} {
+      // Only admin can read audit logs
+      allow read: if isAdmin();
+      
+      // System can create audit logs
+      allow create: if isAuthenticated();
+      
+      // No one can update audit logs (immutable)
+      allow update: if false;
+      
+      // Only admin can delete audit logs
+      allow delete: if isAdmin();
+    }
+    
+    // ============================================
+    // OTP CODES COLLECTION
+    // ============================================
+    match /otp_codes/{otpId} {
+      // PUBLIC - Allow anyone to create, read, and delete OTP codes
+      // This is needed for email verification during signup (before authentication)
+      allow create: if true;
+      allow read: if true;
+      allow delete: if true;
+      
+      // No updates allowed - OTPs are single-use
+      allow update: if false;
+    }
+    
+    // ============================================
+    // MODULE 4: SESSION MANAGEMENT
+    // ============================================
+    
+    // CARE SESSIONS COLLECTION (Session execution tracking)
+    match /care_sessions/{sessionId} {
+      // Read: Admin, client, or assigned caregiver
+      allow read: if isAdmin() || 
+                     (isAuthenticated() && resource.data.clientId == request.auth.uid) ||
+                     (isAuthenticated() && resource.data.caregiverId == request.auth.uid);
+      
+      // Create: Authenticated caregivers starting a session
+      allow create: if isAuthenticated() && isCaretaker();
+      
+      // Update: Admin or assigned caregiver
+      allow update: if isAdmin() || 
+                       (isAuthenticated() && resource.data.caregiverId == request.auth.uid);
+      
+      // Delete: Admin only
+      allow delete: if isAdmin();
+    }
+    
+    // ============================================
+    // MODULE 5: SAFETY & QUALITY ASSURANCE
+    // ============================================
+    
+    // INCIDENTS COLLECTION (Incident reporting system)
+    match /incidents/{incidentId} {
+      // Read: Reporter, involved parties (client/caregiver), or admin
+      allow read: if isAdmin() || 
+                     (isAuthenticated() && resource.data.reporterId == request.auth.uid) ||
+                     (isAuthenticated() && resource.data.caregiverId == request.auth.uid) ||
+                     (isAuthenticated() && resource.data.clientId == request.auth.uid);
+      
+      // List: Admin sees all, users see only their related incidents
+      allow list: if isAdmin() || isAuthenticated();
+      
+      // Create: Any authenticated user can report incidents
+      allow create: if isAuthenticated();
+      
+      // Update: Assigned admin or any admin
+      allow update: if isAdmin() || 
+                       (isAuthenticated() && resource.data.assignedTo == request.auth.uid);
+      
+      // Delete: Admin only
+      allow delete: if isAdmin();
+    }
+    
+    // QUALITY METRICS COLLECTION (Caregiver performance metrics)
+    match /quality_metrics/{metricId} {
+      // Read: Caregiver (own metrics only) or admin
+      allow read: if isAdmin() || 
+                     (isAuthenticated() && resource.data.caregiverId == request.auth.uid);
+      
+      // List: Admin only (for dashboards and analytics)
+      allow list: if isAdmin();
+      
+      // Write: Admin only (automated metric calculation)
+      allow create, update: if isAdmin();
+      
+      // Delete: Admin only
+      allow delete: if isAdmin();
+    }
+    
+    // PLATFORM METRICS COLLECTION (Platform-wide analytics)
+    match /platform_metrics/{metricId} {
+      // Read: Admin only
+      allow read: if isAdmin();
+      
+      // Write: Admin only (automated)
+      allow create, update: if isAdmin();
+      
+      // Delete: Admin only
+      allow delete: if isAdmin();
+    }
+    
+    // ADMIN ALERTS COLLECTION (Critical incident alerts)
+    match /admin_alerts/{alertId} {
+      // Read: Admin only
+      allow read: if isAdmin();
+      
+      // Create: System or admin (automated)
+      allow create: if isAdmin() || isAuthenticated();
+      
+      // Update: Admin only (for acknowledging alerts)
+      allow update: if isAdmin();
+      
+      // Delete: Admin only
+      allow delete: if isAdmin();
+    }
+
+    // ============================================
+    // MODULE 6: PAYMENT & BILLING SYSTEM
+    // ============================================
+
+    // TRANSACTIONS COLLECTION
+    match /transactions/{transactionId} {
+      allow read: if isAdmin() 
+                  || resource.data.clientId == request.auth.uid
+                  || resource.data.caregiverId == request.auth.uid;
+      allow list: if isAdmin() || request.auth.uid != null;
+      allow create: if false; // System only
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // WALLETS COLLECTION
+    match /wallets/{walletId} {
+      allow read: if isAdmin() || resource.data.userId == request.auth.uid;
+      allow list: if isAdmin();
+      allow create: if false;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // WALLET TRANSACTIONS COLLECTION
+    match /wallet_transactions/{walletTxnId} {
+      allow read: if isAdmin();
+      allow list: if isAdmin();
+      allow create, update, delete: if false;
+    }
+
+    // PAYOUTS COLLECTION
+    match /payouts/{payoutId} {
+      allow read: if isAdmin() || resource.data.caregiverId == request.auth.uid;
+      allow list: if isAdmin() || (isCaregiver() && resource.data.caregiverId == request.auth.uid);
+      allow create: if isCaregiver() && request.resource.data.caregiverId == request.auth.uid;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // INVOICES COLLECTION
+    match /invoices/{invoiceId} {
+      allow read: if isAdmin() 
+                  || resource.data.clientId == request.auth.uid
+                  || resource.data.caregiverId == request.auth.uid;
+      allow list: if isAdmin() || request.auth.uid != null;
+      allow create: if false;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // REFUNDS COLLECTION
+    match /refunds/{refundId} {
+      allow read: if isAdmin() 
+                  || resource.data.clientId == request.auth.uid
+                  || resource.data.caregiverId == request.auth.uid;
+      allow list: if isAdmin() || request.auth.uid != null;
+      allow create: if isAuthenticated() && request.resource.data.requestedBy == request.auth.uid;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // CANCELLATION POLICIES COLLECTION
+    match /cancellation_policies/{policyId} {
+      allow read, list: if isAuthenticated();
+      allow create, update, delete: if isAdmin();
+    }
+  }
+}
